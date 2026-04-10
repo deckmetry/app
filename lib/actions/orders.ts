@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { inngest } from "@/lib/inngest/client";
+import { createNotification } from "@/lib/actions/notifications";
 
 interface OrderLineItemInput {
   category: string;
@@ -203,6 +204,19 @@ export async function submitOrder(orderId: string): Promise<OrderResult> {
     });
   }
 
+  // In-app notification for supplier
+  if (order?.supplier_org_id) {
+    await createNotification({
+      organizationId: order.supplier_org_id,
+      type: "order_submitted",
+      title: `New order ${order.order_number}`,
+      body: order.title,
+      href: `/supplier/orders/${orderId}`,
+      entityType: "order",
+      entityId: orderId,
+    });
+  }
+
   revalidatePath("/contractor/orders");
   revalidatePath("/supplier/orders");
   return { success: true, orderId };
@@ -217,6 +231,25 @@ export async function confirmOrder(orderId: string): Promise<OrderResult> {
     .eq("id", orderId);
 
   if (error) return { success: false, error: error.message };
+
+  // Notify contractor
+  const { data: order } = await supabase
+    .from("orders")
+    .select("order_number, title, organization_id")
+    .eq("id", orderId)
+    .single();
+
+  if (order) {
+    await createNotification({
+      organizationId: order.organization_id,
+      type: "order_confirmed",
+      title: `Order ${order.order_number} confirmed`,
+      body: order.title,
+      href: `/contractor/orders/${orderId}`,
+      entityType: "order",
+      entityId: orderId,
+    });
+  }
 
   revalidatePath("/supplier/orders");
   revalidatePath("/contractor/orders");

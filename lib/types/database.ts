@@ -367,3 +367,38 @@ export interface DeliveryRow {
   created_at: string;
   updated_at: string;
 }
+
+// Phase 5 — Notifications
+
+export type NotificationType =
+  | "quote_sent"
+  | "quote_viewed"
+  | "quote_approved"
+  | "quote_rejected"
+  | "order_submitted"
+  | "order_confirmed"
+  | "order_shipped"
+  | "order_delivered"
+  | "order_cancelled"
+  | "invoice_sent"
+  | "invoice_paid"
+  | "delivery_shipped"
+  | "delivery_delivered"
+  | "estimate_shared"
+  | "review_requested"
+  | "system";
+
+export interface NotificationRow {
+  id: string;
+  organization_id: string;
+  user_id: string | null;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  href: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  read_at: string | null;
+  dismissed_at: string | null;
+  created_at: string;
+}

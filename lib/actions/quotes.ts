@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { inngest } from "@/lib/inngest/client";
+import { createNotification } from "@/lib/actions/notifications";
 
 interface QuoteLineItemInput {
   category: string;
@@ -151,6 +152,25 @@ export async function sendQuote(
         },
       });
     }
+  }
+
+  // In-app notification
+  const { data: sentQuote } = await supabase
+    .from("quotes")
+    .select("quote_number, title, organization_id")
+    .eq("id", quoteId)
+    .single();
+
+  if (sentQuote) {
+    await createNotification({
+      organizationId: sentQuote.organization_id,
+      type: "quote_sent",
+      title: `Proposal ${sentQuote.quote_number} sent`,
+      body: sentQuote.title,
+      href: `/contractor/quotes`,
+      entityType: "quote",
+      entityId: quoteId,
+    });
   }
 
   revalidatePath("/contractor/quotes");

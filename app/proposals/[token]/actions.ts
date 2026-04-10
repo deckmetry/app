@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { inngest } from "@/lib/inngest/client";
+import { createNotification } from "@/lib/actions/notifications";
 
 interface ApproveInput {
   quoteId: string;
@@ -87,6 +88,17 @@ export async function approveProposal(
       });
     }
   }
+
+  // In-app notification for contractor org
+  await createNotification({
+    organizationId: input.organizationId,
+    type: "quote_approved",
+    title: `Proposal ${input.quoteNumber} approved by ${input.signerName}`,
+    body: `Total: $${input.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+    href: `/contractor/quotes`,
+    entityType: "quote",
+    entityId: input.quoteId,
+  });
 
   revalidatePath(`/proposals`);
   return { success: true };

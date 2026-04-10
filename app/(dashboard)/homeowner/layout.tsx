@@ -7,10 +7,8 @@ import { Button } from "@/components/ui/button";
 import {
   Hexagon,
   LayoutDashboard,
-  Package,
+  FileSpreadsheet,
   FileText,
-  Truck,
-  CreditCard,
   LogOut,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -19,14 +17,12 @@ import { NotificationBell } from "@/components/notification-bell";
 import { useOrganizationId } from "@/hooks/use-org";
 
 const navItems = [
-  { label: "Dashboard", href: "/supplier", icon: LayoutDashboard },
-  { label: "Orders", href: "/supplier/orders", icon: Package },
-  { label: "Invoices", href: "/supplier/invoices", icon: FileText },
-  { label: "Deliveries", href: "/supplier/deliveries", icon: Truck },
-  { label: "Billing", href: "/supplier/billing", icon: CreditCard },
+  { label: "Dashboard", href: "/homeowner", icon: LayoutDashboard },
+  { label: "My Estimates", href: "/homeowner/estimates", icon: FileSpreadsheet },
+  { label: "Proposals", href: "/homeowner/proposals", icon: FileText },
 ];
 
-export default function SupplierLayout({
+export default function HomeownerLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -47,7 +43,7 @@ export default function SupplierLayout({
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="flex h-14 items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-3">
-            <Link href="/supplier" className="flex items-center gap-2.5">
+            <Link href="/homeowner" className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <Hexagon className="h-4 w-4 text-primary-foreground" />
               </div>
@@ -56,7 +52,7 @@ export default function SupplierLayout({
               </span>
             </Link>
             <span className="hidden text-xs text-muted-foreground sm:inline">
-              Supplier
+              Homeowner
             </span>
           </div>
 
@@ -64,7 +60,7 @@ export default function SupplierLayout({
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||
-                (item.href !== "/supplier" && pathname.startsWith(item.href));
+                (item.href !== "/homeowner" && pathname.startsWith(item.href));
               return (
                 <Link key={item.href} href={item.href}>
                   <Button

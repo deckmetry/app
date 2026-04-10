@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { NotificationBell } from "@/components/notification-bell";
+import { useOrganizationId } from "@/hooks/use-org";
 
 const navItems = [
   {
@@ -51,6 +53,7 @@ export default function ContractorLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const orgId = useOrganizationId();
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -102,15 +105,18 @@ export default function ContractorLayout({
             })}
           </nav>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSignOut}
-            className="gap-2 text-xs text-muted-foreground"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Sign out</span>
-          </Button>
+          <div className="flex items-center gap-1">
+            <NotificationBell organizationId={orgId} />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSignOut}
+              className="gap-2 text-xs text-muted-foreground"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Sign out</span>
+            </Button>
+          </div>
         </div>
       </header>
 
