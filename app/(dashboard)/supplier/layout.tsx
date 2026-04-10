@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import {
   Hexagon,
   LayoutDashboard,
-  FileSpreadsheet,
-  FileText,
   Package,
+  FileText,
+  Truck,
   CreditCard,
   LogOut,
 } from "lucide-react";
@@ -17,34 +17,14 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
 const navItems = [
-  {
-    label: "Pipeline",
-    href: "/contractor",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Estimates",
-    href: "/contractor/estimates",
-    icon: FileSpreadsheet,
-  },
-  {
-    label: "Quotes",
-    href: "/contractor/quotes",
-    icon: FileText,
-  },
-  {
-    label: "Orders",
-    href: "/contractor/orders",
-    icon: Package,
-  },
-  {
-    label: "Billing",
-    href: "/contractor/billing",
-    icon: CreditCard,
-  },
+  { label: "Dashboard", href: "/supplier", icon: LayoutDashboard },
+  { label: "Orders", href: "/supplier/orders", icon: Package },
+  { label: "Invoices", href: "/supplier/invoices", icon: FileText },
+  { label: "Deliveries", href: "/supplier/deliveries", icon: Truck },
+  { label: "Billing", href: "/supplier/billing", icon: CreditCard },
 ];
 
-export default function ContractorLayout({
+export default function SupplierLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -61,11 +41,10 @@ export default function ContractorLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top nav bar */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="flex h-14 items-center justify-between px-4 lg:px-6">
           <div className="flex items-center gap-3">
-            <Link href="/contractor" className="flex items-center gap-2.5">
+            <Link href="/supplier" className="flex items-center gap-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <Hexagon className="h-4 w-4 text-primary-foreground" />
               </div>
@@ -74,7 +53,7 @@ export default function ContractorLayout({
               </span>
             </Link>
             <span className="hidden text-xs text-muted-foreground sm:inline">
-              Contractor
+              Supplier
             </span>
           </div>
 
@@ -82,8 +61,7 @@ export default function ContractorLayout({
             {navItems.map((item) => {
               const isActive =
                 pathname === item.href ||
-                (item.href !== "/contractor" &&
-                  pathname.startsWith(item.href));
+                (item.href !== "/supplier" && pathname.startsWith(item.href));
               return (
                 <Link key={item.href} href={item.href}>
                   <Button
@@ -114,7 +92,6 @@ export default function ContractorLayout({
         </div>
       </header>
 
-      {/* Page content */}
       <main className="mx-auto max-w-7xl px-4 py-6 lg:px-6">{children}</main>
     </div>
   );

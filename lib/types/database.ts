@@ -231,3 +231,139 @@ export interface SubscriptionRow {
   created_at: string;
   updated_at: string;
 }
+
+// Phase 4 — Orders, Invoices, Payments & Deliveries
+
+export type OrderStatus =
+  | "draft"
+  | "submitted"
+  | "confirmed"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+export type InvoiceStatus =
+  | "draft"
+  | "sent"
+  | "paid"
+  | "overdue"
+  | "void"
+  | "cancelled";
+
+export type PaymentStatus =
+  | "pending"
+  | "processing"
+  | "succeeded"
+  | "failed"
+  | "refunded";
+
+export type DeliveryStatus =
+  | "pending"
+  | "in_transit"
+  | "out_for_delivery"
+  | "delivered"
+  | "failed";
+
+export interface OrderRow {
+  id: string;
+  organization_id: string;
+  supplier_org_id: string | null;
+  quote_id: string | null;
+  created_by: string;
+  status: OrderStatus;
+  order_number: string;
+  title: string;
+  notes: string | null;
+  shipping_address: string | null;
+  requested_delivery_date: string | null;
+  subtotal: number;
+  tax_rate: number;
+  tax_amount: number;
+  shipping_amount: number;
+  total: number;
+  submitted_at: string | null;
+  confirmed_at: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface OrderLineItemRow {
+  id: string;
+  order_id: string;
+  category: string;
+  description: string;
+  size: string | null;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  line_total: number;
+  notes: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface InvoiceRow {
+  id: string;
+  organization_id: string;
+  contractor_org_id: string | null;
+  order_id: string | null;
+  created_by: string;
+  status: InvoiceStatus;
+  invoice_number: string;
+  title: string;
+  notes: string | null;
+  subtotal: number;
+  tax_rate: number;
+  tax_amount: number;
+  total: number;
+  due_date: string | null;
+  paid_at: string | null;
+  stripe_invoice_id: string | null;
+  sent_at: string | null;
+  voided_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface PaymentRow {
+  id: string;
+  invoice_id: string | null;
+  organization_id: string;
+  status: PaymentStatus;
+  amount: number;
+  currency: string;
+  stripe_payment_id: string | null;
+  stripe_transfer_id: string | null;
+  payment_method: string | null;
+  notes: string | null;
+  paid_at: string | null;
+  failed_at: string | null;
+  refunded_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliveryRow {
+  id: string;
+  order_id: string;
+  organization_id: string;
+  status: DeliveryStatus;
+  carrier: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  estimated_date: string | null;
+  actual_date: string | null;
+  pod_photo_url: string | null;
+  pod_signer_name: string | null;
+  notes: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
