@@ -6,10 +6,12 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const publicRoutes = ["/", "/login", "/signup", "/api/auth/callback"];
-  const isPublicRoute = publicRoutes.some(
-    (route) => pathname === route || pathname.startsWith("/api/auth/")
-  );
+  const isPublicRoute =
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/proposals/");
 
   if (!isPublicRoute) {
     const hasAuthCookie = request.cookies
