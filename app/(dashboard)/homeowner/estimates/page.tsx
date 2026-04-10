@@ -76,9 +76,14 @@ export default async function HomeownerEstimatesPage() {
                 </TableHeader>
                 <TableBody>
                   {estimates.map((est: any) => (
-                    <TableRow key={est.id}>
+                    <TableRow key={est.id} className="cursor-pointer hover:bg-muted/50">
                       <TableCell className="font-medium">
-                        {est.project_name}
+                        <Link
+                          href={`/homeowner/estimates/${est.id}`}
+                          className="hover:underline"
+                        >
+                          {est.project_name || "Untitled"}
+                        </Link>
                       </TableCell>
                       <TableCell className="text-sm">
                         {est.deck_width_ft}&apos; x {est.deck_projection_ft}

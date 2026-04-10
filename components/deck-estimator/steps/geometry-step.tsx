@@ -1,6 +1,7 @@
 "use client";
 
-import type { EstimateInput, DeckType, JoistSpacing } from "@/lib/types";
+import type { DeckType, JoistSpacing } from "@/lib/types";
+import { useWizardStore } from "@/lib/stores/wizard-store";
 import { Input } from "@/components/ui/input";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -8,12 +9,9 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Home, Footprints, Ruler, MoveVertical, Grid3X3 } from "lucide-react";
 
-interface GeometryStepProps {
-  formData: EstimateInput;
-  updateFormData: (updates: Partial<EstimateInput>) => void;
-}
-
-export function GeometryStep({ formData, updateFormData }: GeometryStepProps) {
+export function GeometryStep() {
+  const formData = useWizardStore((s) => s.formData);
+  const updateFormData = useWizardStore((s) => s.updateFormData);
   return (
     <div className="space-y-6">
       <div>

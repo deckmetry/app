@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { EstimateInput } from "@/lib/types";
+import { useWizardStore } from "@/lib/stores/wizard-store";
 import { deckingBrands } from "@/lib/catalog";
 import {
   Select,
@@ -120,12 +120,9 @@ const COLOR_SWATCHES: Record<string, string> = {
   "Cliffside": "#9A9088",
 };
 
-interface SurfaceStepProps {
-  formData: EstimateInput;
-  updateFormData: (updates: Partial<EstimateInput>) => void;
-}
-
-export function SurfaceStep({ formData, updateFormData }: SurfaceStepProps) {
+export function SurfaceStep() {
+  const formData = useWizardStore((s) => s.formData);
+  const updateFormData = useWizardStore((s) => s.updateFormData);
   // Get available collections for selected brand
   const selectedBrand = useMemo(
     () => deckingBrands.find((b) => b.id === formData.deckingBrand),

@@ -84,7 +84,6 @@ function LayerControls() {
 export function WizardShell() {
   const currentStep = useWizardStore((s) => s.currentStep);
   const formData = useWizardStore((s) => s.formData);
-  const updateFormData = useWizardStore((s) => s.updateFormData);
   const goToStep = useWizardStore((s) => s.goToStep);
   const goNext = useWizardStore((s) => s.goNext);
   const goPrevious = useWizardStore((s) => s.goPrevious);
@@ -135,37 +134,17 @@ export function WizardShell() {
   const renderStep = () => {
     switch (currentStep) {
       case "job-info":
-        return (
-          <JobInfoStep formData={formData} updateFormData={updateFormData} />
-        );
+        return <JobInfoStep />;
       case "geometry":
-        return (
-          <GeometryStep formData={formData} updateFormData={updateFormData} />
-        );
+        return <GeometryStep />;
       case "surface":
-        return (
-          <SurfaceStep formData={formData} updateFormData={updateFormData} />
-        );
+        return <SurfaceStep />;
       case "railing-stairs":
-        return (
-          <RailingStairsStep
-            formData={formData}
-            updateFormData={updateFormData}
-            guardsRequired={estimate.derived.guardsRequired}
-          />
-        );
+        return <RailingStairsStep />;
       case "add-ons":
-        return (
-          <AddOnsStep formData={formData} updateFormData={updateFormData} />
-        );
+        return <AddOnsStep />;
       case "review":
-        return (
-          <ReviewStep
-            formData={formData}
-            estimate={estimate}
-            updateFormData={updateFormData}
-          />
-        );
+        return <ReviewStep />;
       default:
         return null;
     }

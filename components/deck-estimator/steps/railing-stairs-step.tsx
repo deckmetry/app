@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import type { EstimateInput, RailingMaterial, OpenSide, StairSection, StairLocation } from "@/lib/types";
+import type { RailingMaterial, OpenSide, StairSection, StairLocation } from "@/lib/types";
+import { useWizardStore, useEstimate } from "@/lib/stores/wizard-store";
 import { railingSystems } from "@/lib/catalog";
 import { generateStairId } from "@/lib/store";
 import {
@@ -47,17 +48,11 @@ const RAILING_IMAGES: Record<string, { src: string; alt: string; description: st
   },
 };
 
-interface RailingStairsStepProps {
-  formData: EstimateInput;
-  updateFormData: (updates: Partial<EstimateInput>) => void;
-  guardsRequired: boolean;
-}
-
-export function RailingStairsStep({
-  formData,
-  updateFormData,
-  guardsRequired,
-}: RailingStairsStepProps) {
+export function RailingStairsStep() {
+  const formData = useWizardStore((s) => s.formData);
+  const updateFormData = useWizardStore((s) => s.updateFormData);
+  const estimate = useEstimate();
+  const guardsRequired = estimate.derived.guardsRequired;
   // Get selected railing system
   const selectedSystem = useMemo(
     () => railingSystems.find((s) => s.material === formData.railingMaterial),

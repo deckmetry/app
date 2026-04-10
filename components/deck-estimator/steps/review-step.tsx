@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { EstimateInput, EstimateOutput, BomItem } from "@/lib/types";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { BomItem } from "@/lib/types";
+import { useWizardStore, useEstimate } from "@/lib/stores/wizard-store";
+import { saveEstimate } from "@/lib/actions/estimates";
 import { deckingBrands } from "@/lib/catalog";
 import { generateStairId } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -48,14 +51,11 @@ import {
 
   UserCheck,
   Trash2,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface ReviewStepProps {
-  formData: EstimateInput;
-  estimate: EstimateOutput;
-  updateFormData: (updates: Partial<EstimateInput>) => void;
-}
 
 const CATEGORY_ORDER = [
   "foundation",
@@ -103,7 +103,10 @@ const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string
   "add-ons": { bg: "bg-rose-50 dark:bg-rose-950/30", border: "border-rose-200 dark:border-rose-800", text: "text-rose-800 dark:text-rose-200" },
 };
 
-export function ReviewStep({ formData, estimate, updateFormData }: ReviewStepProps) {
+export function ReviewStep() {
+  const formData = useWizardStore((s) => s.formData);
+  const updateFormData = useWizardStore((s) => s.updateFormData);
+  const estimate = useEstimate();
   const [editedQuantities, setEditedQuantities] = useState<Record<string, number>>({});
   const [customItems, setCustomItems] = useState<BomItem[]>([]);
   const [deletedItems, setDeletedItems] = useState<Set<string>>(new Set());
@@ -323,9 +326,24 @@ export function ReviewStep({ formData, estimate, updateFormData }: ReviewStepPro
     window.print();
   };
 
-  // Update estimate
-  const handleUpdateEstimate = () => {
-    toast.success("Estimate updated with current inputs");
+  // Save estimate to database
+  const router = useRouter();
+  const [isSaving, startSaveTransition] = useTransition();
+
+  const handleSaveEstimate = () => {
+    startSaveTransition(async () => {
+      const result = await saveEstimate(formData);
+      if (result.success) {
+        toast.success("Estimate saved to your dashboard", {
+          description: "You can view it from your estimates page.",
+        });
+        router.push("/homeowner/estimates");
+      } else {
+        toast.error("Failed to save estimate", {
+          description: result.error,
+        });
+      }
+    });
   };
 
   return (
@@ -598,15 +616,20 @@ export function ReviewStep({ formData, estimate, updateFormData }: ReviewStepPro
         })}
       </div>
 
-      {/* Update Estimate Button */}
+      {/* Save Estimate Button */}
       <div className="flex justify-center">
-        <Button 
-          size="lg" 
-          onClick={handleUpdateEstimate}
+        <Button
+          size="lg"
+          onClick={handleSaveEstimate}
+          disabled={isSaving}
           className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
-          <CheckCircle2 className="mr-2 h-5 w-5" />
-          Update Estimate
+          {isSaving ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            <Save className="mr-2 h-5 w-5" />
+          )}
+          {isSaving ? "Saving..." : "Save to Dashboard"}
         </Button>
       </div>
 
@@ -670,8 +693,26 @@ export function ReviewStep({ formData, estimate, updateFormData }: ReviewStepPro
           Next Steps
         </h3>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
+            onClick={handleSaveEstimate}
+            disabled={isSaving}
+            className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+          >
+            {isSaving ? (
+              <Loader2 className="h-8 w-8 text-primary animate-spin" />
+            ) : (
+              <Save className="h-8 w-8 text-primary" />
+            )}
+            <span className="font-semibold text-base text-foreground">
+              {isSaving ? "Saving..." : "Save to Dashboard"}
+            </span>
+            <span className="text-xs text-muted-foreground text-center">
+              Save this estimate to your account
+            </span>
+          </Button>
+          <Button
+            variant="outline"
             className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
           >
             <FileText className="h-8 w-8 text-primary" />
@@ -680,8 +721,8 @@ export function ReviewStep({ formData, estimate, updateFormData }: ReviewStepPro
               Get pricing for this material list
             </span>
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
           >
             <UserCheck className="h-8 w-8 text-primary" />

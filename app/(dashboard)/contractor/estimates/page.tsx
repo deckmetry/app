@@ -97,7 +97,7 @@ export default async function ContractorEstimatesPage() {
                 <TableRow key={est.id}>
                   <TableCell className="font-medium">
                     <Link
-                      href={`/contractor/estimates/${est.id}/quote`}
+                      href={`/contractor/estimates/${est.id}`}
                       className="hover:underline"
                     >
                       {est.project_name || "Untitled"}

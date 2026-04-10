@@ -1,17 +1,14 @@
 "use client";
 
-import type { EstimateInput } from "@/lib/types";
+import { useWizardStore } from "@/lib/stores/wizard-store";
 import { Switch } from "@/components/ui/switch";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Grid2X2, Sun, Lightbulb, AlertTriangle } from "lucide-react";
 
-interface AddOnsStepProps {
-  formData: EstimateInput;
-  updateFormData: (updates: Partial<EstimateInput>) => void;
-}
-
-export function AddOnsStep({ formData, updateFormData }: AddOnsStepProps) {
+export function AddOnsStep() {
+  const formData = useWizardStore((s) => s.formData);
+  const updateFormData = useWizardStore((s) => s.updateFormData);
   // Show warning if both skirt options selected
   const bothSkirtsSelected = formData.latticeSkirt && formData.horizontalSkirt;
 

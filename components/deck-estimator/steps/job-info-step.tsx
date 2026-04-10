@@ -1,16 +1,13 @@
 "use client";
 
-import type { EstimateInput } from "@/lib/types";
+import { useWizardStore } from "@/lib/stores/wizard-store";
 import { Input } from "@/components/ui/input";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { User, Mail, Phone, MapPin, Truck, Calendar } from "lucide-react";
 
-interface JobInfoStepProps {
-  formData: EstimateInput;
-  updateFormData: (updates: Partial<EstimateInput>) => void;
-}
-
-export function JobInfoStep({ formData, updateFormData }: JobInfoStepProps) {
+export function JobInfoStep() {
+  const formData = useWizardStore((s) => s.formData);
+  const updateFormData = useWizardStore((s) => s.updateFormData);
   // Calculate minimum date (48 hours from now)
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 2);
