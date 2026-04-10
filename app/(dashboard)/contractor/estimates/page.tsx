@@ -12,6 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, FileText, ExternalLink } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 
 function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, "default" | "secondary" | "outline"> = {
@@ -56,38 +58,26 @@ export default async function ContractorEstimatesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Estimates</h1>
-          <p className="text-sm text-muted-foreground">
-            All your deck estimates. Create quotes from completed estimates.
-          </p>
-        </div>
+      <PageHeader
+        title="Estimates"
+        description="All your deck estimates. Create quotes from completed estimates."
+      >
         <Link href="/">
           <Button size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
             New Estimate
           </Button>
         </Link>
-      </div>
+      </PageHeader>
 
       {rows.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-          <FileText className="h-10 w-10 text-muted-foreground/50 mb-4" />
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            No estimates yet
-          </h3>
-          <p className="mt-1 text-xs text-muted-foreground/70 max-w-[300px]">
-            Create your first deck estimate using the wizard, then come back
-            here to build quotes and proposals.
-          </p>
-          <Link href="/" className="mt-4">
-            <Button size="sm" className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Estimate
-            </Button>
-          </Link>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No estimates yet"
+          description="Create your first deck estimate using the wizard, then come back here to build quotes and proposals."
+          actionLabel="Create Estimate"
+          actionHref="/"
+        />
       ) : (
         <div className="rounded-lg border">
           <Table>

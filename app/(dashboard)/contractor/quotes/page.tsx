@@ -10,7 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { FileText, ExternalLink, Copy } from "lucide-react";
+import { FileText, ExternalLink } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 
 function QuoteStatusBadge({ status }: { status: string }) {
   const config: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; label: string }> = {
@@ -30,31 +32,19 @@ export default async function ContractorQuotesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">
-          Quotes &amp; Proposals
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Manage your quotes, share proposals, and track approvals.
-        </p>
-      </div>
+      <PageHeader
+        title="Quotes & Proposals"
+        description="Manage your quotes, share proposals, and track approvals."
+      />
 
       {quotes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
-          <FileText className="h-10 w-10 text-muted-foreground/50 mb-4" />
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            No quotes yet
-          </h3>
-          <p className="mt-1 text-xs text-muted-foreground/70 max-w-[300px]">
-            Go to an estimate and click &quot;Quote&quot; to create your first
-            proposal.
-          </p>
-          <Link href="/contractor/estimates" className="mt-4">
-            <Button size="sm" variant="outline">
-              View Estimates
-            </Button>
-          </Link>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="No quotes yet"
+          description="Go to an estimate and click &quot;Quote&quot; to create your first proposal."
+          actionLabel="View Estimates"
+          actionHref="/contractor/estimates"
+        />
       ) : (
         <div className="rounded-lg border">
           <Table>

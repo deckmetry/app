@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, FileSpreadsheet } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 
 export default async function HomeownerEstimatesPage() {
   const supabase = await createClient();
@@ -41,33 +43,25 @@ export default async function HomeownerEstimatesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">My Estimates</h1>
-          <p className="text-muted-foreground">
-            Your saved deck estimates and BOMs
-          </p>
-        </div>
+      <PageHeader title="My Estimates" description="Your saved deck estimates and BOMs">
         <Link href="/">
           <Button size="sm" className="gap-2">
             <PlusCircle className="h-4 w-4" />
             New Estimate
           </Button>
         </Link>
-      </div>
+      </PageHeader>
 
       <Card>
         <CardContent className="pt-6">
           {!estimates || estimates.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg font-medium">No estimates yet</p>
-              <p className="text-sm mt-1">
-                Create your first deck estimate using the wizard
-              </p>
-              <Link href="/" className="mt-4 inline-block">
-                <Button>Start Estimating</Button>
-              </Link>
-            </div>
+            <EmptyState
+              icon={FileSpreadsheet}
+              title="No estimates yet"
+              description="Create your first deck estimate using the wizard"
+              actionLabel="Start Estimating"
+              actionHref="/"
+            />
           ) : (
             <div className="rounded-lg border">
               <Table>

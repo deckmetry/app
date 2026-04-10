@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CreditCard, ExternalLink, Loader2, Plug } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
 import {
   createConnectOnboardingLink,
   createConnectDashboardLink,
@@ -51,12 +52,10 @@ export default function SupplierBillingPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Billing</h1>
-        <p className="text-muted-foreground">
-          Manage your subscription and payment settings
-        </p>
-      </div>
+      <PageHeader
+        title="Billing"
+        description="Manage your subscription and payment settings"
+      />
 
       {/* Stripe Connect */}
       <Card>

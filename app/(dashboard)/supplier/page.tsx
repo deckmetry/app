@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, FileText, Truck, DollarSign } from "lucide-react";
+import { Package, FileText, Truck } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { MetricCard } from "@/components/metric-card";
 
 export default async function SupplierDashboardPage() {
   const supabase = await createClient();
@@ -22,7 +25,6 @@ export default async function SupplierDashboardPage() {
   const orgId = profile?.default_organization_id;
   if (!orgId) redirect("/dashboard");
 
-  // Fetch metrics
   const [ordersRes, invoicesRes, deliveriesRes] = await Promise.all([
     supabase
       .from("orders")
@@ -61,85 +63,83 @@ export default async function SupplierDashboardPage() {
       .in("status", ["in_transit", "out_for_delivery"]),
   ]);
 
-  const metrics = [
-    {
-      label: "Total Orders",
-      value: ordersRes.count ?? 0,
-      sub: `${pendingOrders.count ?? 0} pending`,
-      icon: Package,
-      href: "/supplier/orders",
-    },
-    {
-      label: "Invoices",
-      value: invoicesRes.count ?? 0,
-      sub: `${unpaidInvoices.count ?? 0} unpaid`,
-      icon: FileText,
-      href: "/supplier/invoices",
-    },
-    {
-      label: "Deliveries",
-      value: deliveriesRes.count ?? 0,
-      sub: `${activeDeliveries.count ?? 0} in transit`,
-      icon: Truck,
-      href: "/supplier/deliveries",
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Supplier Dashboard</h1>
-        <p className="text-muted-foreground">
-          Manage incoming orders, invoices, and deliveries
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Supplier Dashboard"
+        description="Manage incoming orders, invoices, and deliveries"
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
-        {metrics.map((m) => (
-          <Link key={m.label} href={m.href}>
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {m.label}
-                </CardTitle>
-                <m.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{m.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">{m.sub}</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+        <MetricCard
+          label="Total Orders"
+          value={ordersRes.count ?? 0}
+          sub={`${pendingOrders.count ?? 0} pending`}
+          icon={Package}
+          href="/supplier/orders"
+          accentColor="#3B82F6"
+        />
+        <MetricCard
+          label="Invoices"
+          value={invoicesRes.count ?? 0}
+          sub={`${unpaidInvoices.count ?? 0} unpaid`}
+          icon={FileText}
+          href="/supplier/invoices"
+          accentColor="#F59E0B"
+        />
+        <MetricCard
+          label="Deliveries"
+          value={deliveriesRes.count ?? 0}
+          sub={`${activeDeliveries.count ?? 0} in transit`}
+          icon={Truck}
+          href="/supplier/deliveries"
+          accentColor="#10B981"
+        />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Link href="/supplier/orders">
-              <Button variant="outline" className="w-full justify-start gap-2">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Link href="/supplier/orders">
+            <Button
+              variant="outline"
+              className="group w-full justify-between gap-2"
+            >
+              <span className="flex items-center gap-2">
                 <Package className="h-4 w-4" />
                 View Order Inbox
-              </Button>
-            </Link>
-            <Link href="/supplier/invoices">
-              <Button variant="outline" className="w-full justify-start gap-2">
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </Button>
+          </Link>
+          <Link href="/supplier/invoices">
+            <Button
+              variant="outline"
+              className="group w-full justify-between gap-2"
+            >
+              <span className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
                 Manage Invoices
-              </Button>
-            </Link>
-            <Link href="/supplier/deliveries">
-              <Button variant="outline" className="w-full justify-start gap-2">
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </Button>
+          </Link>
+          <Link href="/supplier/deliveries">
+            <Button
+              variant="outline"
+              className="group w-full justify-between gap-2"
+            >
+              <span className="flex items-center gap-2">
                 <Truck className="h-4 w-4" />
                 Track Deliveries
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }

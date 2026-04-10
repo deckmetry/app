@@ -71,19 +71,20 @@ export default async function ProposalReviewPage({
     .filter((i: any) => i.visible_to_customer)
     .sort((a: any, b: any) => a.sort_order - b.sort_order);
 
-  const isApproved = quote.status === "approved" || (quote.approvals?.length ?? 0) > 0;
+  const isApproved =
+    quote.status === "approved" || (quote.approvals?.length ?? 0) > 0;
   const estimate = quote.estimates;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Simple header */}
-      <header className="border-b bg-card">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      {/* Header */}
+      <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
               <Hexagon className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-sm font-bold">Deckmetry</span>
+            <span className="text-sm font-bold tracking-tight">Deckmetry</span>
           </div>
           <a
             href={`/api/quotes/${quote.id}/pdf`}
@@ -102,7 +103,7 @@ export default async function ProposalReviewPage({
         {/* Status banner */}
         {isApproved && (
           <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
             <div>
               <p className="text-sm font-semibold text-emerald-800">
                 Proposal Approved
@@ -120,7 +121,7 @@ export default async function ProposalReviewPage({
         {/* Proposal header */}
         <Card>
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-4">
               <div>
                 <CardTitle className="text-xl">{quote.title}</CardTitle>
                 <CardDescription className="mt-1">
@@ -130,14 +131,13 @@ export default async function ProposalReviewPage({
               </div>
               <Badge
                 variant={isApproved ? "default" : "secondary"}
-                className="capitalize"
+                className="capitalize shrink-0"
               >
                 {isApproved ? "Approved" : quote.status}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Project details */}
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -153,8 +153,8 @@ export default async function ProposalReviewPage({
                 </p>
                 <p className="mt-1 text-sm font-medium">
                   {estimate?.deck_width_ft}&apos; x{" "}
-                  {estimate?.deck_projection_ft}&apos;{" "}
-                  {estimate?.deck_type} ({estimate?.total_area_sf} sf)
+                  {estimate?.deck_projection_ft}&apos; {estimate?.deck_type} (
+                  {estimate?.total_area_sf} sf)
                 </p>
               </div>
               <div>
@@ -240,9 +240,7 @@ export default async function ProposalReviewPage({
             <div className="flex flex-col items-end space-y-2">
               <div className="flex justify-between w-64">
                 <span className="text-sm text-muted-foreground">Subtotal</span>
-                <span className="text-sm font-mono">
-                  {fmt(quote.subtotal)}
-                </span>
+                <span className="text-sm font-mono">{fmt(quote.subtotal)}</span>
               </div>
               {Number(quote.tax_amount) > 0 && (
                 <div className="flex justify-between w-64">
@@ -284,7 +282,7 @@ export default async function ProposalReviewPage({
           </CardContent>
         </Card>
 
-        {/* Approval form — only show if not yet approved */}
+        {/* Approval form */}
         {!isApproved && (
           <ApprovalForm
             quoteId={quote.id}

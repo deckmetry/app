@@ -1,6 +1,9 @@
 import { listDeliveries } from "@/lib/actions/deliveries";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Truck } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 import {
   Table,
   TableBody,
@@ -23,22 +26,19 @@ export default async function SupplierDeliveriesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Deliveries</h1>
-        <p className="text-muted-foreground">
-          Track shipments and proof of delivery
-        </p>
-      </div>
+      <PageHeader
+        title="Deliveries"
+        description="Track shipments and proof of delivery"
+      />
 
       <Card>
         <CardContent className="pt-6">
           {deliveries.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg font-medium">No deliveries yet</p>
-              <p className="text-sm mt-1">
-                Create a delivery from a confirmed order
-              </p>
-            </div>
+            <EmptyState
+              icon={Truck}
+              title="No deliveries yet"
+              description="Create a delivery from a confirmed order"
+            />
           ) : (
             <div className="rounded-lg border">
               <Table>

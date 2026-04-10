@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Package } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 
 const statusColors: Record<string, string> = {
   submitted: "bg-blue-100 text-blue-800",
@@ -54,22 +56,19 @@ export default async function SupplierOrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Order Inbox</h1>
-        <p className="text-muted-foreground">
-          Incoming purchase orders from contractors
-        </p>
-      </div>
+      <PageHeader
+        title="Order Inbox"
+        description="Incoming purchase orders from contractors"
+      />
 
       <Card>
         <CardContent className="pt-6">
           {orders.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg font-medium">No orders yet</p>
-              <p className="text-sm mt-1">
-                Orders from contractors will appear here
-              </p>
-            </div>
+            <EmptyState
+              icon={Package}
+              title="No orders yet"
+              description="Orders from contractors will appear here"
+            />
           ) : (
             <div className="rounded-lg border">
               <Table>

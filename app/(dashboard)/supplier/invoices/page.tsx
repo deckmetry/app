@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, FileText } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800",
@@ -37,20 +39,19 @@ export default async function SupplierInvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Invoices</h1>
-        <p className="text-muted-foreground">Manage invoices for orders</p>
-      </div>
+      <PageHeader
+        title="Invoices"
+        description="Manage invoices for orders"
+      />
 
       <Card>
         <CardContent className="pt-6">
           {invoices.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg font-medium">No invoices yet</p>
-              <p className="text-sm mt-1">
-                Create an invoice from a confirmed order
-              </p>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="No invoices yet"
+              description="Create an invoice from a confirmed order"
+            />
           ) : (
             <div className="rounded-lg border">
               <Table>

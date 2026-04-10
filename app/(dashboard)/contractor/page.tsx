@@ -16,7 +16,10 @@ import {
   CheckCircle2,
   Clock,
   Plus,
+  ArrowRight,
 } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { MetricCard } from "@/components/metric-card";
 
 export default async function ContractorPipelinePage() {
   const supabase = await createClient();
@@ -34,7 +37,6 @@ export default async function ContractorPipelinePage() {
   const orgId = profile?.default_organization_id;
   if (!orgId) redirect("/login");
 
-  // Fetch counts
   const [estimatesRes, quotesRes] = await Promise.all([
     supabase
       .from("estimates")
@@ -56,77 +58,58 @@ export default async function ContractorPipelinePage() {
   const approvedQuotes = quotes.filter((q) => q.status === "approved").length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pipeline</h1>
-          <p className="text-sm text-muted-foreground">
-            Overview of your estimates and proposals
-          </p>
-        </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Pipeline"
+        description="Overview of your estimates and proposals"
+      >
         <Link href="/">
           <Button size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
             New Estimate
           </Button>
         </Link>
-      </div>
+      </PageHeader>
 
-      {/* Metric cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Estimates</CardTitle>
-            <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{estimates.length}</div>
-            <p className="text-xs text-muted-foreground">total estimates</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Draft Quotes</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{draftQuotes}</div>
-            <p className="text-xs text-muted-foreground">awaiting send</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Sent</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{sentQuotes}</div>
-            <p className="text-xs text-muted-foreground">awaiting response</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">
-              {approvedQuotes}
-            </div>
-            <p className="text-xs text-muted-foreground">ready to order</p>
-          </CardContent>
-        </Card>
+        <MetricCard
+          label="Estimates"
+          value={estimates.length}
+          sub="total estimates"
+          icon={FileSpreadsheet}
+          accentColor="#64748B"
+        />
+        <MetricCard
+          label="Draft Quotes"
+          value={draftQuotes}
+          sub="awaiting send"
+          icon={Clock}
+          accentColor="#F59E0B"
+        />
+        <MetricCard
+          label="Sent"
+          value={sentQuotes}
+          sub="awaiting response"
+          icon={FileText}
+          accentColor="#3B82F6"
+        />
+        <MetricCard
+          label="Approved"
+          value={approvedQuotes}
+          sub="ready to order"
+          icon={CheckCircle2}
+          accentColor="#10B981"
+        />
       </div>
 
-      {/* Quick links */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Link href="/contractor/estimates">
-          <Card className="transition-colors hover:bg-muted/50 cursor-pointer">
+          <Card className="group transition-all duration-200 hover:shadow-md hover:border-primary/30 cursor-pointer">
             <CardHeader>
-              <CardTitle className="text-base">Estimates</CardTitle>
+              <CardTitle className="flex items-center justify-between text-base">
+                Estimates
+                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </CardTitle>
               <CardDescription>
                 View and manage all your deck estimates. Create quotes from
                 completed estimates.
@@ -139,9 +122,12 @@ export default async function ContractorPipelinePage() {
         </Link>
 
         <Link href="/contractor/quotes">
-          <Card className="transition-colors hover:bg-muted/50 cursor-pointer">
+          <Card className="group transition-all duration-200 hover:shadow-md hover:border-primary/30 cursor-pointer">
             <CardHeader>
-              <CardTitle className="text-base">Quotes &amp; Proposals</CardTitle>
+              <CardTitle className="flex items-center justify-between text-base">
+                Quotes &amp; Proposals
+                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              </CardTitle>
               <CardDescription>
                 Manage quotes, generate PDF proposals, and track approvals.
               </CardDescription>

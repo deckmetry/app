@@ -12,7 +12,9 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, FileText } from "lucide-react";
+import { PageHeader } from "@/components/page-header";
+import { EmptyState } from "@/components/empty-state";
 
 const statusColors: Record<string, string> = {
   sent: "bg-blue-100 text-blue-800",
@@ -47,7 +49,6 @@ export default async function HomeownerProposalsPage() {
 
   if (!profile?.default_organization_id) redirect("/dashboard");
 
-  // Homeowners see quotes where their org's estimate was used
   const { data: quotes } = await supabase
     .from("quotes")
     .select(`
@@ -61,22 +62,19 @@ export default async function HomeownerProposalsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Proposals</h1>
-        <p className="text-muted-foreground">
-          Proposals from contractors for your deck projects
-        </p>
-      </div>
+      <PageHeader
+        title="Proposals"
+        description="Proposals from contractors for your deck projects"
+      />
 
       <Card>
         <CardContent className="pt-6">
           {!quotes || quotes.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="text-lg font-medium">No proposals yet</p>
-              <p className="text-sm mt-1">
-                When a contractor sends you a proposal, it will appear here
-              </p>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="No proposals yet"
+              description="When a contractor sends you a proposal, it will appear here"
+            />
           ) : (
             <div className="rounded-lg border">
               <Table>

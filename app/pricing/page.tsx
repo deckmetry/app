@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { Check, Hexagon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +22,7 @@ interface PlanDef {
   priceLabel: string;
   priceSubtext?: string;
   features: PlanFeature[];
-  priceId: string | null; // null = free tier
+  priceId: string | null;
   popular?: boolean;
 }
 
@@ -104,15 +103,15 @@ const supplierPlans: PlanDef[] = [
 
 export default async function PricingPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-shadow group-hover:shadow-md group-hover:shadow-primary/20">
               <Hexagon className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-sm font-bold">Deckmetry</span>
+            <span className="text-sm font-bold tracking-tight">Deckmetry</span>
           </Link>
           <div className="flex items-center gap-3">
             <Link href="/login">
@@ -127,10 +126,10 @@ export default async function PricingPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-16">
+      <main className="mx-auto max-w-6xl px-4 py-20">
         {/* Hero */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold tracking-tight">
+          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
             Simple, transparent pricing
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -140,23 +139,24 @@ export default async function PricingPage() {
         </div>
 
         {/* Homeowner callout */}
-        <div className="mb-16 text-center">
-          <Card className="inline-block">
-            <CardContent className="flex items-center gap-3 pt-6 pb-6 px-8">
-              <Check className="h-5 w-5 text-emerald-600" />
-              <p className="text-sm">
-                <strong>Homeowners</strong> — Always free. Generate estimates,
-                get drawings, and connect with contractors at no cost.
-              </p>
-            </CardContent>
-          </Card>
+        <div className="mb-16 flex justify-center">
+          <div className="inline-flex items-center gap-3 rounded-full border bg-emerald-50 px-6 py-3">
+            <Check className="h-5 w-5 text-emerald-600 shrink-0" />
+            <p className="text-sm">
+              <strong>Homeowners</strong> — Always free. Generate estimates,
+              get drawings, and connect with contractors at no cost.
+            </p>
+          </div>
         </div>
 
         {/* Contractor Plans */}
-        <section className="mb-16">
-          <h2 className="text-2xl font-bold text-center mb-8">
+        <section className="mb-20">
+          <h2 className="text-2xl font-bold text-center mb-2">
             Contractor Plans
           </h2>
+          <p className="text-center text-sm text-muted-foreground mb-8">
+            Everything you need to estimate, quote, and deliver deck projects.
+          </p>
           <div className="grid gap-6 md:grid-cols-3">
             {contractorPlans.map((plan) => (
               <PlanCard key={plan.name} plan={plan} />
@@ -165,10 +165,13 @@ export default async function PricingPage() {
         </section>
 
         {/* Supplier Plans */}
-        <section className="mb-16">
-          <h2 className="text-2xl font-bold text-center mb-8">
+        <section className="mb-20">
+          <h2 className="text-2xl font-bold text-center mb-2">
             Supplier Plans
           </h2>
+          <p className="text-center text-sm text-muted-foreground mb-8">
+            Manage orders, invoices, and deliveries all in one place.
+          </p>
           <div className="grid gap-6 md:grid-cols-2 max-w-3xl mx-auto">
             {supplierPlans.map((plan) => (
               <PlanCard key={plan.name} plan={plan} />
@@ -190,7 +193,13 @@ export default async function PricingPage() {
 
 function PlanCard({ plan }: { plan: PlanDef }) {
   return (
-    <Card className={plan.popular ? "border-primary shadow-md relative" : ""}>
+    <Card
+      className={
+        plan.popular
+          ? "relative border-primary shadow-lg shadow-primary/5"
+          : "border-border"
+      }
+    >
       {plan.popular && (
         <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2">
           Most Popular
@@ -200,16 +209,18 @@ function PlanCard({ plan }: { plan: PlanDef }) {
         <CardTitle>{plan.name}</CardTitle>
         <CardDescription>{plan.description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         <div>
-          <span className="text-4xl font-bold">{plan.priceLabel}</span>
+          <span className="text-4xl font-bold tracking-tight">
+            {plan.priceLabel}
+          </span>
           {plan.priceSubtext && (
             <span className="text-muted-foreground">{plan.priceSubtext}</span>
           )}
         </div>
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {plan.features.map((f) => (
-            <li key={f.text} className="flex items-start gap-2 text-sm">
+            <li key={f.text} className="flex items-start gap-2.5 text-sm">
               <Check className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
               <span>{f.text}</span>
             </li>
