@@ -94,13 +94,13 @@ const CATEGORY_NOTES: Record<string, string> = {
 
 // Category colors for visual distinction
 const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string }> = {
-  foundation: { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-800" },
-  framing: { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-800" },
-  decking: { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-800" },
-  fasteners: { bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-700" },
-  fascia: { bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-800" },
-  railing: { bg: "bg-sky-50", border: "border-sky-200", text: "text-sky-800" },
-  "add-ons": { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-800" },
+  foundation: { bg: "bg-amber-50 dark:bg-amber-950/30", border: "border-amber-200 dark:border-amber-800", text: "text-amber-800 dark:text-amber-200" },
+  framing: { bg: "bg-orange-50 dark:bg-orange-950/30", border: "border-orange-200 dark:border-orange-800", text: "text-orange-800 dark:text-orange-200" },
+  decking: { bg: "bg-emerald-50 dark:bg-emerald-950/30", border: "border-emerald-200 dark:border-emerald-800", text: "text-emerald-800 dark:text-emerald-200" },
+  fasteners: { bg: "bg-slate-50 dark:bg-slate-800/30", border: "border-slate-200 dark:border-slate-700", text: "text-slate-700 dark:text-slate-300" },
+  fascia: { bg: "bg-violet-50 dark:bg-violet-950/30", border: "border-violet-200 dark:border-violet-800", text: "text-violet-800 dark:text-violet-200" },
+  railing: { bg: "bg-sky-50 dark:bg-sky-950/30", border: "border-sky-200 dark:border-sky-800", text: "text-sky-800 dark:text-sky-200" },
+  "add-ons": { bg: "bg-rose-50 dark:bg-rose-950/30", border: "border-rose-200 dark:border-rose-800", text: "text-rose-800 dark:text-rose-200" },
 };
 
 export function ReviewStep({ formData, estimate, updateFormData }: ReviewStepProps) {
@@ -340,8 +340,8 @@ export function ReviewStep({ formData, estimate, updateFormData }: ReviewStepPro
       </div>
 
       {/* Disclaimer */}
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-        <p className="text-sm text-amber-800 font-medium">
+      <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+        <p className="text-sm text-amber-800 dark:text-amber-200 font-medium">
           Preliminary material builder for budgeting and sales support. Final layout, code compliance, and engineering to be verified.
         </p>
       </div>
@@ -653,11 +653,11 @@ export function ReviewStep({ formData, estimate, updateFormData }: ReviewStepPro
 
       {/* Success Footer or Request Actions */}
       {estimate.warnings.length === 0 ? (
-        <div className="flex items-center gap-3 rounded-xl bg-emerald-50 border border-emerald-200 p-5 print:hidden">
-          <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+        <div className="flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-5 print:hidden">
+          <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           <div>
-            <p className="font-semibold text-emerald-700">Estimate Complete</p>
-            <p className="text-sm text-emerald-600/80">
+            <p className="font-semibold text-emerald-700 dark:text-emerald-300">Estimate Complete</p>
+            <p className="text-sm text-emerald-600/80 dark:text-emerald-400/80">
               Your BOM is ready for review. Use the actions below to proceed.
             </p>
           </div>

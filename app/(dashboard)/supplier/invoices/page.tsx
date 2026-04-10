@@ -16,12 +16,12 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 
 const statusColors: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-800",
-  sent: "bg-blue-100 text-blue-800",
-  paid: "bg-emerald-100 text-emerald-800",
-  overdue: "bg-red-100 text-red-800",
-  void: "bg-gray-100 text-gray-500",
-  cancelled: "bg-red-100 text-red-800",
+  draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+  sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+  paid: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+  overdue: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
+  void: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+  cancelled: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
 };
 
 function fmt(n: number) {

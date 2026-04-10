@@ -14,10 +14,15 @@ const geistMono = Geist_Mono({
   variable: "--font-mono",
 });
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover' as const,
+};
+
 export const metadata: Metadata = {
   title: "Deckmetry - Smart Deck Estimator",
   description: 'Professional deck material calculator for contractors',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
@@ -43,7 +48,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${plusJakartaSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <Providers>
           {children}

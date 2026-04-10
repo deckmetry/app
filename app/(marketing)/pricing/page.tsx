@@ -1,4 +1,4 @@
-import { Check, Hexagon } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,6 +11,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CheckoutButton } from "./checkout-button";
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Pricing — Deckmetry",
+  description:
+    "Simple, transparent pricing for homeowners, contractors, and suppliers.",
+};
 
 interface PlanFeature {
   text: string;
@@ -103,30 +110,7 @@ const supplierPlans: PlanDef[] = [
 
 export default async function PricingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
-      {/* Header */}
-      <header className="border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary transition-shadow group-hover:shadow-md group-hover:shadow-primary/20">
-              <Hexagon className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-sm font-bold tracking-tight">Deckmetry</span>
-          </Link>
-          <div className="flex items-center gap-3">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">
-                Sign in
-              </Button>
-            </Link>
-            <Link href="/signup">
-              <Button size="sm">Get Started</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-4 py-20">
+    <div className="mx-auto max-w-6xl px-4 py-20">
         {/* Hero */}
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
@@ -140,8 +124,8 @@ export default async function PricingPage() {
 
         {/* Homeowner callout */}
         <div className="mb-16 flex justify-center">
-          <div className="inline-flex items-center gap-3 rounded-full border bg-emerald-50 px-6 py-3">
-            <Check className="h-5 w-5 text-emerald-600 shrink-0" />
+          <div className="inline-flex items-center gap-3 rounded-full border bg-emerald-50 dark:bg-emerald-950/30 px-6 py-3">
+            <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <p className="text-sm">
               <strong>Homeowners</strong> — Always free. Generate estimates,
               get drawings, and connect with contractors at no cost.
@@ -186,7 +170,6 @@ export default async function PricingPage() {
             Deckmetry (capped at $150 per transaction).
           </p>
         </div>
-      </main>
     </div>
   );
 }
@@ -221,7 +204,7 @@ function PlanCard({ plan }: { plan: PlanDef }) {
         <ul className="space-y-2.5">
           {plan.features.map((f) => (
             <li key={f.text} className="flex items-start gap-2.5 text-sm">
-              <Check className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
               <span>{f.text}</span>
             </li>
           ))}

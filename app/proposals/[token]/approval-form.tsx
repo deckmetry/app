@@ -69,14 +69,14 @@ export function ApprovalForm({
 
   if (approved) {
     return (
-      <Card className="border-emerald-200 bg-emerald-50">
+      <Card className="border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30">
         <CardContent className="flex items-center gap-3 pt-6">
-          <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+          <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           <div>
-            <p className="font-semibold text-emerald-800">
+            <p className="font-semibold text-emerald-800 dark:text-emerald-200">
               Proposal approved!
             </p>
-            <p className="text-sm text-emerald-700">
+            <p className="text-sm text-emerald-700 dark:text-emerald-300">
               A confirmation has been recorded. The contractor will be notified.
             </p>
           </div>

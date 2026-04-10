@@ -62,7 +62,7 @@ export default async function ContractorEstimatesPage() {
         title="Estimates"
         description="All your deck estimates. Create quotes from completed estimates."
       >
-        <Link href="/">
+        <Link href="/estimate">
           <Button size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
             New Estimate
@@ -76,7 +76,7 @@ export default async function ContractorEstimatesPage() {
           title="No estimates yet"
           description="Create your first deck estimate using the wizard, then come back here to build quotes and proposals."
           actionLabel="Create Estimate"
-          actionHref="/"
+          actionHref="/estimate"
         />
       ) : (
         <div className="rounded-lg border">
@@ -96,7 +96,12 @@ export default async function ContractorEstimatesPage() {
               {rows.map((est) => (
                 <TableRow key={est.id}>
                   <TableCell className="font-medium">
-                    {est.project_name || "Untitled"}
+                    <Link
+                      href={`/contractor/estimates/${est.id}/quote`}
+                      className="hover:underline"
+                    >
+                      {est.project_name || "Untitled"}
+                    </Link>
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={est.status} />

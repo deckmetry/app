@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Truck } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -14,11 +15,11 @@ import {
 } from "@/components/ui/table";
 
 const statusColors: Record<string, string> = {
-  pending: "bg-gray-100 text-gray-800",
-  in_transit: "bg-blue-100 text-blue-800",
-  out_for_delivery: "bg-amber-100 text-amber-800",
-  delivered: "bg-emerald-100 text-emerald-800",
-  failed: "bg-red-100 text-red-800",
+  pending: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+  in_transit: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+  out_for_delivery: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+  delivered: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+  failed: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
 };
 
 export default async function SupplierDeliveriesPage() {
@@ -56,7 +57,16 @@ export default async function SupplierDeliveriesPage() {
                   {deliveries.map((d: any) => (
                     <TableRow key={d.id}>
                       <TableCell className="font-mono text-sm">
-                        {d.orders?.order_number ?? "—"}
+                        {d.order_id ? (
+                          <Link
+                            href={`/supplier/orders/${d.order_id}`}
+                            className="hover:underline text-primary"
+                          >
+                            {d.orders?.order_number ?? "—"}
+                          </Link>
+                        ) : (
+                          "—"
+                        )}
                       </TableCell>
                       <TableCell className="text-sm">
                         {d.carrier ?? "—"}

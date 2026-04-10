@@ -120,7 +120,7 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html {
+  html[data-scroll-behavior="smooth"] {
     scroll-behavior: smooth;
   }
   @media (prefers-reduced-motion: reduce) {
@@ -142,6 +142,11 @@
     background: oklch(0.705 0.191 48 / 0.2);
     color: oklch(0.279 0.041 260);
   }
+}
+
+/* Safe area for iOS bottom bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Print Styles for BOM */

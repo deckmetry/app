@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
+  ArrowLeft,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -23,6 +24,7 @@ import {
   Maximize2,
   Download,
 } from "lucide-react";
+import Link from "next/link";
 import {
   Dialog,
   DialogContent,
@@ -175,20 +177,29 @@ export function WizardShell() {
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 print:hidden">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-              <Hexagon className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight text-foreground">
-                Deckmetry
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Smart Deck Estimator
-              </p>
+            <Link
+              href="/dashboard"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title="Back to dashboard"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+                <Hexagon className="h-4.5 w-4.5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-base font-bold tracking-tight text-foreground">
+                  Deckmetry
+                </h1>
+                <p className="text-[11px] text-muted-foreground">
+                  Smart Deck Estimator
+                </p>
+              </div>
             </div>
           </div>
           <Badge variant="secondary" className="hidden sm:flex">
-            Prototype
+            Step {currentStepIndex + 1} of {WIZARD_STEPS.length}
           </Badge>
         </div>
       </header>
@@ -216,7 +227,7 @@ export function WizardShell() {
                           isActive
                             ? "bg-primary text-primary-foreground"
                             : isComplete
-                              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:hover:bg-emerald-900/60"
                               : "bg-muted text-muted-foreground",
                           !isClickable && "cursor-not-allowed opacity-50"
                         )}
@@ -473,15 +484,15 @@ export function WizardShell() {
                     {estimate.warnings.length > 0 && (
                       <>
                         <hr className="border-border" />
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-                          <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wide mb-2">
+                        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                          <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide mb-2">
                             Warnings
                           </p>
                           <ul className="space-y-1">
                             {estimate.warnings.map((warning, index) => (
                               <li
                                 key={index}
-                                className="text-xs text-amber-700 flex items-start gap-2"
+                                className="text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2"
                               >
                                 <Circle className="h-1.5 w-1.5 mt-1.5 fill-current flex-shrink-0" />
                                 {warning}

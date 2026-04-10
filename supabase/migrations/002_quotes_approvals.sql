@@ -1,5 +1,8 @@
 -- Deckmetry Phase 2 — Quotes, Proposals & Approvals
 
+-- Enable pgcrypto for gen_random_bytes()
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 -- ============================================================
 -- 1. CUSTOM TYPES
 -- ============================================================
@@ -46,7 +49,7 @@ CREATE TABLE quotes (
   total NUMERIC(12,2) NOT NULL DEFAULT 0,
 
   -- Sharing
-  share_token TEXT UNIQUE DEFAULT encode(gen_random_bytes(16), 'hex'),
+  share_token TEXT UNIQUE DEFAULT encode(extensions.gen_random_bytes(16), 'hex'),
 
   -- Tracking
   sent_at TIMESTAMPTZ,

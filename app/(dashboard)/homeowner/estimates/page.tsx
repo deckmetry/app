@@ -44,7 +44,7 @@ export default async function HomeownerEstimatesPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="My Estimates" description="Your saved deck estimates and BOMs">
-        <Link href="/">
+        <Link href="/estimate">
           <Button size="sm" className="gap-2">
             <PlusCircle className="h-4 w-4" />
             New Estimate
@@ -60,7 +60,7 @@ export default async function HomeownerEstimatesPage() {
               title="No estimates yet"
               description="Create your first deck estimate using the wizard"
               actionLabel="Start Estimating"
-              actionHref="/"
+              actionHref="/estimate"
             />
           ) : (
             <div className="rounded-lg border">

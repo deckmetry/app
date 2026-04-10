@@ -1,5 +1,6 @@
 import { getOrder } from "@/lib/actions/orders";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -7,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -28,13 +30,13 @@ function fmt(n: number) {
 }
 
 const statusColors: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-800",
-  submitted: "bg-blue-100 text-blue-800",
-  confirmed: "bg-amber-100 text-amber-800",
-  processing: "bg-purple-100 text-purple-800",
-  shipped: "bg-indigo-100 text-indigo-800",
-  delivered: "bg-emerald-100 text-emerald-800",
-  cancelled: "bg-red-100 text-red-800",
+  draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
+  submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+  confirmed: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+  processing: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200",
+  shipped: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200",
+  delivered: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+  cancelled: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
 };
 
 // Order timeline steps
@@ -102,6 +104,14 @@ export default async function ContractorOrderDetailPage({
 
   return (
     <div className="space-y-6">
+      <Link
+        href="/contractor/orders"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to Orders
+      </Link>
+
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold">{order.order_number}</h1>

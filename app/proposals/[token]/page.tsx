@@ -102,13 +102,13 @@ export default async function ProposalReviewPage({
       <main className="mx-auto max-w-4xl px-4 py-8 space-y-6">
         {/* Status banner */}
         {isApproved && (
-          <div className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-            <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
+          <div className="flex items-center gap-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-4">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <div>
-              <p className="text-sm font-semibold text-emerald-800">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
                 Proposal Approved
               </p>
-              <p className="text-xs text-emerald-700">
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">
                 Approved by {quote.approvals?.[0]?.signer_name ?? "—"} on{" "}
                 {new Date(
                   quote.approvals?.[0]?.approved_at ?? quote.approved_at

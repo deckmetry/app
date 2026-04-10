@@ -51,7 +51,7 @@ export default async function HomeownerDashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Link href="/">
+        <Link href="/estimate">
           <Card className="group transition-all duration-200 hover:shadow-md hover:border-primary/30 cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -97,7 +97,7 @@ export default async function HomeownerDashboardPage() {
           <CardTitle className="text-base">Get Started</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Link href="/">
+          <Link href="/estimate">
             <Button className="w-full justify-start gap-2">
               <PlusCircle className="h-4 w-4" />
               Create a New Deck Estimate

@@ -17,10 +17,10 @@ import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 
 const statusColors: Record<string, string> = {
-  sent: "bg-blue-100 text-blue-800",
-  viewed: "bg-amber-100 text-amber-800",
-  approved: "bg-emerald-100 text-emerald-800",
-  rejected: "bg-red-100 text-red-800",
+  sent: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+  viewed: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+  approved: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+  rejected: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
 };
 
 function fmt(n: number) {
