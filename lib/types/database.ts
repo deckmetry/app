@@ -170,3 +170,64 @@ export interface ApprovalRow {
   approved_quote_number: string;
   created_at: string;
 }
+
+// Phase 3 — Stripe Products, Prices & Subscriptions
+
+export type SubscriptionStatus =
+  | "trialing"
+  | "active"
+  | "canceled"
+  | "incomplete"
+  | "incomplete_expired"
+  | "past_due"
+  | "unpaid"
+  | "paused";
+
+export type PricingType = "one_time" | "recurring";
+export type PricingInterval = "day" | "week" | "month" | "year";
+
+export interface ProductRow {
+  id: string;
+  active: boolean;
+  name: string;
+  description: string | null;
+  image: string | null;
+  metadata: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PriceRow {
+  id: string;
+  product_id: string;
+  active: boolean;
+  description: string | null;
+  unit_amount: number;
+  currency: string;
+  type: PricingType;
+  interval: PricingInterval | null;
+  interval_count: number | null;
+  trial_period_days: number | null;
+  metadata: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SubscriptionRow {
+  id: string;
+  organization_id: string;
+  status: SubscriptionStatus;
+  price_id: string | null;
+  quantity: number;
+  cancel_at_period_end: boolean;
+  cancel_at: string | null;
+  canceled_at: string | null;
+  current_period_start: string;
+  current_period_end: string;
+  trial_start: string | null;
+  trial_end: string | null;
+  ended_at: string | null;
+  metadata: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+}

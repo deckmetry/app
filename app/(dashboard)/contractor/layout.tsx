@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   FileSpreadsheet,
   FileText,
+  CreditCard,
   LogOut,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -29,6 +30,11 @@ const navItems = [
     label: "Quotes",
     href: "/contractor/quotes",
     icon: FileText,
+  },
+  {
+    label: "Billing",
+    href: "/contractor/billing",
+    icon: CreditCard,
   },
 ];
 

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { calculateEstimate } from "@/lib/calculations";
 import type { EstimateInput, BomItem } from "@/lib/types";
 import { revalidatePath } from "next/cache";
+import { checkEstimateLimit } from "@/lib/subscription";
 
 interface SaveEstimateResult {
   success: boolean;
@@ -22,6 +23,15 @@ export async function saveEstimate(
   } = await supabase.auth.getUser();
   if (!user) {
     return { success: false, error: "Not authenticated" };
+  }
+
+  // Check free-tier estimate limit
+  const limit = await checkEstimateLimit();
+  if (!limit.allowed) {
+    return {
+      success: false,
+      error: `Free plan limit reached (${limit.used}/${limit.limit} estimates this month). Upgrade to Pro for unlimited estimates.`,
+    };
   }
 
   // Get user's default organization
