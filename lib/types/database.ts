@@ -108,3 +108,65 @@ export interface EstimateStairSectionRow {
   sort_order: number;
   created_at: string;
 }
+
+// Phase 2 — Quotes & Approvals
+
+export type QuoteStatus = "draft" | "sent" | "viewed" | "approved" | "rejected" | "expired";
+
+export interface QuoteRow {
+  id: string;
+  organization_id: string;
+  estimate_id: string;
+  created_by: string;
+  status: QuoteStatus;
+  quote_number: string;
+  title: string;
+  cover_note: string | null;
+  valid_until: string | null;
+  payment_terms: string | null;
+  subtotal: number;
+  tax_rate: number;
+  tax_amount: number;
+  discount_amount: number;
+  total: number;
+  share_token: string | null;
+  sent_at: string | null;
+  viewed_at: string | null;
+  approved_at: string | null;
+  rejected_at: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface QuoteLineItemRow {
+  id: string;
+  quote_id: string;
+  category: string;
+  description: string;
+  size: string | null;
+  quantity: number;
+  unit: string;
+  unit_cost: number;
+  markup_pct: number;
+  unit_price: number;
+  line_total: number;
+  notes: string | null;
+  sort_order: number;
+  visible_to_customer: boolean;
+  created_at: string;
+}
+
+export interface ApprovalRow {
+  id: string;
+  quote_id: string;
+  organization_id: string;
+  signer_name: string;
+  signer_email: string;
+  signer_ip: string | null;
+  signature_data: string;
+  approved_at: string;
+  approved_total: number;
+  approved_quote_number: string;
+  created_at: string;
+}
