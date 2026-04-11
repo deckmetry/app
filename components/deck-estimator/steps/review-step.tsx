@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { BomItem } from "@/lib/types";
 import { useWizardStore, useEstimate } from "@/lib/stores/wizard-store";
 import { useEmbed } from "@/lib/contexts/embed-context";
@@ -334,18 +334,29 @@ export function ReviewStep() {
 
   // Save estimate to database
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const existingProjectId = searchParams.get("projectId") ?? undefined;
+  const roleParam = searchParams.get("role") ?? "homeowner";
+  const roleBase = ["homeowner", "contractor", "supplier"].includes(roleParam)
+    ? roleParam
+    : "homeowner";
   const [isSaving, startSaveTransition] = useTransition();
   const [savedEstimateId, setSavedEstimateId] = useState<string | null>(null);
 
   const handleSaveEstimate = () => {
     startSaveTransition(async () => {
-      const result = await saveEstimate(formData);
+      const result = await saveEstimate(formData, existingProjectId);
       if (result.success) {
         setSavedEstimateId(result.estimateId ?? null);
         toast.success("Estimate saved to your dashboard", {
           description: "You can view it from your estimates page.",
         });
-        router.push("/homeowner/estimates");
+        // Navigate to the project if we have one, otherwise estimates list
+        if (result.projectId) {
+          router.push(`/${roleBase}/projects/${result.projectId}`);
+        } else {
+          router.push(`/${roleBase}/estimates`);
+        }
       } else {
         toast.error("Failed to save estimate", {
           description: result.error,
@@ -359,7 +370,7 @@ export function ReviewStep() {
     if (!savedEstimateId) {
       // Save first, then redirect to purchase
       startSaveTransition(async () => {
-        const result = await saveEstimate(formData);
+        const result = await saveEstimate(formData, existingProjectId);
         if (result.success && result.estimateId) {
           setSavedEstimateId(result.estimateId);
           try {

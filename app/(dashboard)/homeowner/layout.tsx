@@ -1,12 +1,11 @@
 "use client";
 
 import { DashboardShell } from "@/components/dashboard-shell";
-import { LayoutDashboard, FileSpreadsheet, FileText, CreditCard } from "lucide-react";
+import { LayoutDashboard, FolderKanban, CreditCard } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/homeowner", icon: LayoutDashboard },
-  { label: "My Estimates", href: "/homeowner/estimates", icon: FileSpreadsheet },
-  { label: "Proposals", href: "/homeowner/proposals", icon: FileText },
+  { label: "My Projects", href: "/homeowner/projects", icon: FolderKanban },
   { label: "Billing", href: "/homeowner/billing", icon: CreditCard },
 ];
 

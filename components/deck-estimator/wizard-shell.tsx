@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import type { EstimateInput, WizardStep } from "@/lib/types";
 import { WIZARD_STEPS } from "@/lib/store";
 import {
   useWizardStore,
@@ -89,6 +90,7 @@ export function WizardShell() {
   const goToStep = useWizardStore((s) => s.goToStep);
   const goNext = useWizardStore((s) => s.goNext);
   const goPrevious = useWizardStore((s) => s.goPrevious);
+  const updateFormData = useWizardStore((s) => s.updateFormData);
   const setSource = useWizardStore((s) => s.setSource);
   const currentStepIndex = useCurrentStepIndex();
   const estimate = useEstimate();
@@ -97,14 +99,31 @@ export function WizardShell() {
   const isFullscreen = useDrawingStore((s) => s.isFullscreen);
   const setIsFullscreen = useDrawingStore((s) => s.setIsFullscreen);
 
-  // Read supplier referral from URL
+  // Read URL params for supplier referral + project pre-population
   const searchParams = useSearchParams();
   useEffect(() => {
     const ref = searchParams.get("ref");
     if (ref) {
       setSource(`ref_${ref}`);
     }
-  }, [searchParams, setSource]);
+
+    // Pre-populate from project data
+    const projectName = searchParams.get("projectName");
+    const projectAddress = searchParams.get("projectAddress");
+    const startStep = searchParams.get("startStep") as WizardStep | null;
+
+    const updates: Partial<EstimateInput> = {};
+    if (projectName) updates.projectName = projectName;
+    if (projectAddress) updates.projectAddress = projectAddress;
+
+    if (Object.keys(updates).length > 0) {
+      updateFormData(updates);
+    }
+    if (startStep && WIZARD_STEPS.some((s) => s.id === startStep)) {
+      goToStep(startStep);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Download drawing as PNG
   const downloadPDF = async () => {

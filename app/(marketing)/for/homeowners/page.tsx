@@ -16,6 +16,7 @@ import {
   DollarSign,
   ArrowRight,
 } from "lucide-react";
+import { HomeownerWizardMockup } from "@/components/marketing/homeowner-wizard-mockup";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -90,6 +91,13 @@ export default function ForHomeownersPage() {
               </Button>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Interactive Mockup */}
+      <section className="py-16 bg-muted/20">
+        <div className="mx-auto max-w-6xl px-4">
+          <HomeownerWizardMockup />
         </div>
       </section>
 

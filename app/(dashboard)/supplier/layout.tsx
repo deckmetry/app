@@ -3,6 +3,7 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import {
   LayoutDashboard,
+  FolderKanban,
   Package,
   FileText,
   Truck,
@@ -14,10 +15,12 @@ import {
 const navItems = [
   { label: "Dashboard", href: "/supplier", icon: LayoutDashboard },
   { label: "Leads", href: "/supplier/leads", icon: Users },
+  { label: "Projects", href: "/supplier/projects", icon: FolderKanban },
   { label: "Orders", href: "/supplier/orders", icon: Package },
   { label: "Invoices", href: "/supplier/invoices", icon: FileText },
   { label: "Deliveries", href: "/supplier/deliveries", icon: Truck },
   { label: "Billing", href: "/supplier/billing", icon: CreditCard },
+  { label: "Team", href: "/supplier/team", icon: Users },
   { label: "Settings", href: "/supplier/settings", icon: Settings },
 ];
 

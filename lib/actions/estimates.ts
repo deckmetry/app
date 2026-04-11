@@ -10,11 +10,13 @@ import { logActivity } from "@/lib/actions/activity";
 interface SaveEstimateResult {
   success: boolean;
   estimateId?: string;
+  projectId?: string;
   error?: string;
 }
 
 export async function saveEstimate(
-  formData: EstimateInput
+  formData: EstimateInput,
+  existingProjectId?: string
 ): Promise<SaveEstimateResult> {
   const supabase = await createClient();
 
@@ -183,6 +185,53 @@ export async function saveEstimate(
     }
   }
 
+  // Link to existing project or auto-create one
+  let project: { id: string } | null = null;
+
+  if (existingProjectId) {
+    // Attach estimate to an existing project
+    await supabase
+      .from("estimates")
+      .update({ project_id: existingProjectId })
+      .eq("id", estimateId);
+    project = { id: existingProjectId };
+  } else {
+    // Auto-create a project for this estimate
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("type")
+      .eq("id", orgId)
+      .single();
+
+    const orgType = (org?.type as "homeowner" | "contractor" | "supplier") ?? "homeowner";
+
+    const { data: newProject } = await supabase
+      .from("projects")
+      .insert({
+        created_by_org_id: orgId,
+        created_by: user.id,
+        [`${orgType}_org_id`]: orgId,
+        name: formData.projectName || "Untitled Project",
+        address: formData.projectAddress || null,
+      })
+      .select("id")
+      .single();
+
+    if (newProject) {
+      await supabase
+        .from("estimates")
+        .update({ project_id: newProject.id })
+        .eq("id", estimateId);
+
+      await supabase.from("project_stakeholders").insert({
+        project_id: newProject.id,
+        organization_id: orgId,
+        role: orgType,
+      });
+    }
+    project = newProject;
+  }
+
   revalidatePath("/dashboard");
 
   await logActivity({
@@ -196,10 +245,11 @@ export async function saveEstimate(
       deckType: formData.deckType,
       areaSf: estimate.derived.deckAreaSf,
       bomItems: estimate.bom.length,
+      projectId: project?.id,
     },
   });
 
-  return { success: true, estimateId };
+  return { success: true, estimateId, projectId: project?.id };
 }
 
 export async function getEstimate(estimateId: string) {

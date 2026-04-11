@@ -88,19 +88,29 @@ export async function updateDeliveryStatus(
 
   if (error) return { success: false, error: error.message };
 
-  // If delivered, also update the parent order
-  if (status === "delivered") {
+  // If shipped or delivered, also update the parent order and advance project pipeline
+  if (status === "in_transit" || status === "delivered") {
     const { data: delivery } = await supabase
       .from("deliveries")
-      .select("order_id")
+      .select("order_id, orders:order_id (project_id)")
       .eq("id", deliveryId)
       .single();
 
-    if (delivery?.order_id) {
+    if (status === "delivered" && delivery?.order_id) {
       await supabase
         .from("orders")
         .update({ status: "delivered", delivered_at: now })
         .eq("id", delivery.order_id);
+    }
+
+    // Advance project pipeline
+    const projectId = (delivery?.orders as any)?.project_id;
+    if (projectId) {
+      const { advanceProjectStatus } = await import("@/lib/actions/projects");
+      await advanceProjectStatus(
+        projectId,
+        status === "in_transit" ? "materials_shipped" : "materials_delivered"
+      );
     }
   }
 

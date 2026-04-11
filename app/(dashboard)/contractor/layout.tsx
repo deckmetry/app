@@ -3,18 +3,20 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import {
   LayoutDashboard,
-  FileSpreadsheet,
+  FolderKanban,
   FileText,
   Package,
   CreditCard,
+  Users,
 } from "lucide-react";
 
 const navItems = [
   { label: "Pipeline", href: "/contractor", icon: LayoutDashboard },
-  { label: "Estimates", href: "/contractor/estimates", icon: FileSpreadsheet },
+  { label: "Projects", href: "/contractor/projects", icon: FolderKanban },
   { label: "Quotes", href: "/contractor/quotes", icon: FileText },
   { label: "Orders", href: "/contractor/orders", icon: Package },
   { label: "Billing", href: "/contractor/billing", icon: CreditCard },
+  { label: "Team", href: "/contractor/team", icon: Users },
 ];
 
 export default function ContractorLayout({

@@ -16,6 +16,7 @@ import {
   Shield,
   ArrowRight,
 } from "lucide-react";
+import { SupplierWebsiteMockup } from "@/components/marketing/supplier-website-mockup";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -94,6 +95,13 @@ export default function ForSuppliersPage() {
               </Button>
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Interactive Mockup */}
+      <section className="py-16 bg-muted/20">
+        <div className="mx-auto max-w-6xl px-4">
+          <SupplierWebsiteMockup />
         </div>
       </section>
 

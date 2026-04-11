@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { inngest } from "@/lib/inngest/client";
 import { createNotification } from "@/lib/actions/notifications";
+import { advanceProjectStatus } from "@/lib/actions/projects";
 
 interface ApproveInput {
   quoteId: string;
@@ -99,6 +100,16 @@ export async function approveProposal(
     entityType: "quote",
     entityId: input.quoteId,
   });
+
+  // Advance project pipeline
+  const { data: quoteProject } = await supabase
+    .from("quotes")
+    .select("project_id")
+    .eq("id", input.quoteId)
+    .single();
+  if (quoteProject?.project_id) {
+    await advanceProjectStatus(quoteProject.project_id, "agreement_signed");
+  }
 
   revalidatePath(`/proposals`);
   return { success: true };

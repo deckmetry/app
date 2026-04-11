@@ -6,6 +6,7 @@ import { inngest } from "@/lib/inngest/client";
 import { createNotification } from "@/lib/actions/notifications";
 import { logActivity } from "@/lib/actions/activity";
 import { requirePaidPlan } from "@/lib/subscription";
+import { advanceProjectStatus } from "@/lib/actions/projects";
 
 interface QuoteLineItemInput {
   category: string;
@@ -63,12 +64,20 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteResult>
 
   const orgId = profile.default_organization_id;
 
+  // Get project_id from estimate
+  const { data: estimateRef } = await supabase
+    .from("estimates")
+    .select("project_id")
+    .eq("id", input.estimate_id)
+    .single();
+
   // Create the quote
   const { data: quote, error: quoteError } = await supabase
     .from("quotes")
     .insert({
       organization_id: orgId,
       estimate_id: input.estimate_id,
+      project_id: estimateRef?.project_id ?? null,
       created_by: user.id,
       status: "draft",
       title: input.title,
@@ -211,6 +220,16 @@ export async function sendQuote(
         recipientEmail: recipientEmail ?? null,
       },
     });
+  }
+
+  // Advance project pipeline
+  const { data: quoteForProject } = await supabase
+    .from("quotes")
+    .select("project_id")
+    .eq("id", quoteId)
+    .single();
+  if (quoteForProject?.project_id) {
+    await advanceProjectStatus(quoteForProject.project_id, "proposal_sent");
   }
 
   return { success: true, quoteId };

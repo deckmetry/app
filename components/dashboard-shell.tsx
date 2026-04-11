@@ -8,6 +8,8 @@ import { Hexagon, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { NotificationBell } from "@/components/notification-bell";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AdminRoleSwitcher } from "@/components/admin-role-switcher";
+import { useAdmin } from "@/lib/contexts/admin-context";
 import { useOrganizationId } from "@/hooks/use-org";
 import { useState } from "react";
 
@@ -35,6 +37,7 @@ export function DashboardShell({
   const pathname = usePathname();
   const router = useRouter();
   const orgId = useOrganizationId();
+  const { isMasterAdmin } = useAdmin();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleSignOut = async () => {
@@ -75,6 +78,13 @@ export function DashboardShell({
             )}
           </Link>
         </div>
+
+        {/* Master admin role switcher */}
+        {isMasterAdmin && (
+          <div className="px-2 pt-2">
+            <AdminRoleSwitcher currentRole={role} collapsed={collapsed} />
+          </div>
+        )}
 
         {/* Nav items */}
         <nav className="flex-1 space-y-1 p-2 overflow-y-auto">
@@ -146,8 +156,15 @@ export function DashboardShell({
             </Link>
           </div>
 
-          {/* Desktop: breadcrumb area (empty for now, holds space) */}
+          {/* Desktop: breadcrumb area / admin switcher */}
           <div className="hidden md:block" />
+
+          {/* Mobile admin switcher */}
+          {isMasterAdmin && (
+            <div className="md:hidden">
+              <AdminRoleSwitcher currentRole={role} />
+            </div>
+          )}
 
           {/* Right side */}
           <div className="flex items-center gap-1">

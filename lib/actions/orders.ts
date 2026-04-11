@@ -6,6 +6,7 @@ import { inngest } from "@/lib/inngest/client";
 import { createNotification } from "@/lib/actions/notifications";
 import { logActivity } from "@/lib/actions/activity";
 import { requirePaidPlan } from "@/lib/subscription";
+import { advanceProjectStatus } from "@/lib/actions/projects";
 
 interface OrderLineItemInput {
   category: string;
@@ -73,12 +74,13 @@ export async function createOrderFromQuote(
     return { success: false, error: "Approved quote not found" };
   }
 
-  // Create the order
+  // Create the order (inherit project_id from quote)
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
       organization_id: profile.default_organization_id,
       quote_id: quoteId,
+      project_id: quote.project_id ?? null,
       created_by: user.id,
       status: "draft",
       title: quote.title,
@@ -246,6 +248,16 @@ export async function submitOrder(orderId: string): Promise<OrderResult> {
     },
   });
 
+  // Advance project pipeline
+  const { data: orderProject } = await supabase
+    .from("orders")
+    .select("project_id")
+    .eq("id", orderId)
+    .single();
+  if (orderProject?.project_id) {
+    await advanceProjectStatus(orderProject.project_id, "po_submitted");
+  }
+
   return { success: true, orderId };
 }
 
@@ -295,6 +307,16 @@ export async function confirmOrder(orderId: string): Promise<OrderResult> {
       action: "confirmed",
       details: { orderNumber: order.order_number },
     });
+  }
+
+  // Advance project pipeline
+  const { data: confirmProject } = await supabase
+    .from("orders")
+    .select("project_id")
+    .eq("id", orderId)
+    .single();
+  if (confirmProject?.project_id) {
+    await advanceProjectStatus(confirmProject.project_id, "po_confirmed");
   }
 
   return { success: true, orderId };

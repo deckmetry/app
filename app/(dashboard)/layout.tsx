@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { AdminProvider } from "@/lib/contexts/admin-context";
 
 export default async function DashboardLayout({
   children,
@@ -12,6 +13,15 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
+
+  // Check if user is a master admin
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_master_admin")
+    .eq("id", user.id)
+    .single();
+
+  const isMasterAdmin = profile?.is_master_admin ?? false;
 
   // Auto-create contractor-supplier link if user signed up via supplier ref
   const supplierRef = user.user_metadata?.supplier_ref;
@@ -55,5 +65,5 @@ export default async function DashboardLayout({
     }
   }
 
-  return <>{children}</>;
+  return <AdminProvider isMasterAdmin={isMasterAdmin}>{children}</AdminProvider>;
 }

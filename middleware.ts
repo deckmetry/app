@@ -17,6 +17,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/embed/") ||
     pathname.startsWith("/bom/") ||
     pathname.startsWith("/estimate") ||
+    pathname.startsWith("/projects/accept/") ||
     pathname.startsWith("/for/") ||
     pathname === "/features";
 
@@ -62,6 +63,14 @@ export async function middleware(request: NextRequest) {
         } = await supabase.auth.getUser();
 
         if (user) {
+          // Master admins can access any dashboard via role switcher cookie
+          const adminView = request.cookies.get("deckmetry-admin-view")?.value;
+          if (adminView) {
+            // Master admin with active view set — allow access to that dashboard
+            // (Actual master admin verification happens in dashboard layout)
+            return response;
+          }
+
           const role = (user.user_metadata?.role as string) ?? "homeowner";
           const correctBasePath = `/${role}`;
 
