@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, FileText, Truck } from "lucide-react";
+import { Package, FileText, Truck, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -25,7 +25,7 @@ export default async function SupplierDashboardPage() {
   const orgId = profile?.default_organization_id;
   if (!orgId) redirect("/dashboard");
 
-  const [ordersRes, invoicesRes, deliveriesRes] = await Promise.all([
+  const [ordersRes, invoicesRes, deliveriesRes, leadsRes, newLeadsRes] = await Promise.all([
     supabase
       .from("orders")
       .select("status", { count: "exact", head: true })
@@ -41,6 +41,15 @@ export default async function SupplierDashboardPage() {
       .from("deliveries")
       .select("status", { count: "exact", head: true })
       .eq("organization_id", orgId),
+    supabase
+      .from("supplier_leads")
+      .select("id", { count: "exact", head: true })
+      .eq("supplier_org_id", orgId),
+    supabase
+      .from("supplier_leads")
+      .select("id", { count: "exact", head: true })
+      .eq("supplier_org_id", orgId)
+      .eq("status", "new"),
   ]);
 
   const [pendingOrders, unpaidInvoices, activeDeliveries] = await Promise.all([
@@ -70,7 +79,15 @@ export default async function SupplierDashboardPage() {
         description="Manage incoming orders, invoices, and deliveries"
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
+        <MetricCard
+          label="Leads"
+          value={leadsRes.count ?? 0}
+          sub={`${newLeadsRes.count ?? 0} new`}
+          icon={Users}
+          href="/supplier/leads"
+          accentColor="#8B5CF6"
+        />
         <MetricCard
           label="Total Orders"
           value={ordersRes.count ?? 0}

@@ -7,6 +7,9 @@ interface SubscriptionInfo {
   tier: PlanTier;
   priceId: string | null;
   status: string | null;
+  gracePeriod: boolean;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodEnd: string | null;
 }
 
 // ---- Price ID mappings ----
@@ -58,32 +61,83 @@ async function getOrgIdForUser() {
 
 /**
  * Get the subscription info for the current user's default organization.
+ * Handles active, trialing, past_due (with grace period), and canceled (with period-end access).
  */
 export async function getSubscription(): Promise<SubscriptionInfo> {
   const { supabase, user, orgId } = await getOrgIdForUser();
 
-  if (!user || !orgId) {
-    return { active: false, tier: "free", priceId: null, status: null };
-  }
+  const inactive: SubscriptionInfo = {
+    active: false,
+    tier: "free",
+    priceId: null,
+    status: null,
+    gracePeriod: false,
+    cancelAtPeriodEnd: false,
+    currentPeriodEnd: null,
+  };
+
+  if (!user || !orgId) return inactive;
 
   const { data: sub } = await supabase
     .from("subscriptions")
-    .select("status, price_id")
+    .select("status, price_id, grace_period_end, cancel_at_period_end, current_period_end")
     .eq("organization_id", orgId)
-    .in("status", ["active", "trialing"])
+    .in("status", ["active", "trialing", "past_due", "canceled"])
+    .order("current_period_end", { ascending: false })
     .limit(1)
     .single();
 
-  if (!sub) {
-    return { active: false, tier: "free", priceId: null, status: null };
+  if (!sub) return inactive;
+
+  const now = new Date();
+  const tier = resolveTier(sub.price_id);
+
+  // Active or trialing — straightforward
+  if (sub.status === "active" || sub.status === "trialing") {
+    return {
+      active: true,
+      tier,
+      priceId: sub.price_id,
+      status: sub.status,
+      gracePeriod: false,
+      cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+      currentPeriodEnd: sub.current_period_end ?? null,
+    };
   }
 
-  return {
-    active: true,
-    tier: resolveTier(sub.price_id),
-    priceId: sub.price_id,
-    status: sub.status,
-  };
+  // Past due — active only if within grace period
+  if (sub.status === "past_due") {
+    const graceEnd = sub.grace_period_end ? new Date(sub.grace_period_end) : null;
+    const inGrace = graceEnd ? graceEnd > now : false;
+
+    return {
+      active: inGrace,
+      tier: inGrace ? tier : "free",
+      priceId: sub.price_id,
+      status: sub.status,
+      gracePeriod: inGrace,
+      cancelAtPeriodEnd: false,
+      currentPeriodEnd: sub.current_period_end ?? null,
+    };
+  }
+
+  // Canceled — active if current_period_end hasn't passed yet
+  if (sub.status === "canceled") {
+    const periodEnd = sub.current_period_end ? new Date(sub.current_period_end) : null;
+    const stillActive = periodEnd ? periodEnd > now : false;
+
+    return {
+      active: stillActive,
+      tier: stillActive ? tier : "free",
+      priceId: sub.price_id,
+      status: sub.status,
+      gracePeriod: false,
+      cancelAtPeriodEnd: true,
+      currentPeriodEnd: sub.current_period_end ?? null,
+    };
+  }
+
+  return inactive;
 }
 
 /**
@@ -144,6 +198,7 @@ export type HomeownerProductType = "bom" | "permit_design" | "3d_design" | "pro_
 
 /**
  * Check if a homeowner has purchased a specific product for an entity (estimate).
+ * Also returns true if the estimate is supplier-sourced (free BOM).
  */
 export async function checkHomeownerPurchase(
   estimateId: string,
@@ -151,6 +206,19 @@ export async function checkHomeownerPurchase(
 ): Promise<boolean> {
   const { supabase, orgId } = await getOrgIdForUser();
   if (!orgId) return false;
+
+  // Check if estimate is supplier-sourced (free BOM)
+  if (productType === "bom") {
+    const { data: estimate } = await supabase
+      .from("estimates")
+      .select("source")
+      .eq("id", estimateId)
+      .single();
+
+    if (estimate?.source?.startsWith("supplier_")) {
+      return true;
+    }
+  }
 
   const { count } = await supabase
     .from("purchases")

@@ -22,10 +22,22 @@ export default function MarketingLayout({
 
           <nav className="hidden items-center gap-6 md:flex">
             <Link
-              href="/features"
+              href="/for/suppliers"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
-              Features
+              For Suppliers
+            </Link>
+            <Link
+              href="/for/contractors"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              For Contractors
+            </Link>
+            <Link
+              href="/for/homeowners"
+              className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              For Homeowners
             </Link>
             <Link
               href="/pricing"
@@ -98,7 +110,7 @@ export default function MarketingLayout({
               <ul className="space-y-2">
                 <li>
                   <Link
-                    href="/signup"
+                    href="/for/homeowners"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Homeowners
@@ -106,7 +118,7 @@ export default function MarketingLayout({
                 </li>
                 <li>
                   <Link
-                    href="/signup"
+                    href="/for/contractors"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Contractors
@@ -114,7 +126,7 @@ export default function MarketingLayout({
                 </li>
                 <li>
                   <Link
-                    href="/signup"
+                    href="/for/suppliers"
                     className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Suppliers

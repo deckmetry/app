@@ -80,7 +80,7 @@ const contractorPlans: ContractorPlan[] = [
   {
     name: "Solo",
     description: "For sole proprietorships — up to 50 projects/month",
-    priceLabel: "$79",
+    priceLabel: "$99",
     priceSubtext: "/month",
     features: [
       { text: "50 estimates per month" },
@@ -95,7 +95,7 @@ const contractorPlans: ContractorPlan[] = [
   {
     name: "Teams",
     description: "For contractor teams with multiple users",
-    priceLabel: "$79",
+    priceLabel: "$149",
     priceSubtext: "/month + $20/seat",
     features: [
       { text: "Unlimited estimates" },
@@ -264,15 +264,15 @@ export default async function PricingPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <span className="text-4xl font-bold tracking-tight">$497</span>
+                <span className="text-4xl font-bold tracking-tight">$697</span>
                 <span className="text-muted-foreground">/month</span>
                 <span className="text-sm text-muted-foreground ml-1">
                   + $20/seat
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Includes 1 seat. Additional seats $20/month each. One-time setup
-                fee applies.
+                Includes 1 seat. Additional seats $20/month each. $7,500
+                one-time setup fee.
               </p>
               <ul className="space-y-2.5">
                 {supplierFeatures.map((f) => (

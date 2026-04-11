@@ -109,6 +109,9 @@ export interface EstimateInput {
   postCapLights: boolean;
   stairLights: boolean;
   accentLights: boolean;
+
+  // Referral source (e.g. "ref_supplier-slug" → resolved to "supplier_<uuid>")
+  source?: string | null;
 }
 
 export interface BomItem {

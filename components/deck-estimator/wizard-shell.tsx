@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { WIZARD_STEPS } from "@/lib/store";
 import {
@@ -87,12 +89,22 @@ export function WizardShell() {
   const goToStep = useWizardStore((s) => s.goToStep);
   const goNext = useWizardStore((s) => s.goNext);
   const goPrevious = useWizardStore((s) => s.goPrevious);
+  const setSource = useWizardStore((s) => s.setSource);
   const currentStepIndex = useCurrentStepIndex();
   const estimate = useEstimate();
 
   const layers = useDrawingStore((s) => s.layers);
   const isFullscreen = useDrawingStore((s) => s.isFullscreen);
   const setIsFullscreen = useDrawingStore((s) => s.setIsFullscreen);
+
+  // Read supplier referral from URL
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      setSource(`ref_${ref}`);
+    }
+  }, [searchParams, setSource]);
 
   // Download drawing as PNG
   const downloadPDF = async () => {

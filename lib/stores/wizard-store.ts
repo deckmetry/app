@@ -9,9 +9,11 @@ import { calculateEstimate } from "@/lib/calculations";
 interface WizardState {
   formData: EstimateInput;
   currentStep: WizardStep;
+  source: string | null;
 
   updateFormData: (updates: Partial<EstimateInput>) => void;
   setFormData: (formData: EstimateInput) => void;
+  setSource: (source: string | null) => void;
   goToStep: (step: WizardStep) => void;
   goNext: () => void;
   goPrevious: () => void;
@@ -21,6 +23,7 @@ interface WizardState {
 export const useWizardStore = create<WizardState>((set, get) => ({
   formData: initialFormState,
   currentStep: "job-info",
+  source: null,
 
   updateFormData: (updates) =>
     set((state) => ({
@@ -28,6 +31,8 @@ export const useWizardStore = create<WizardState>((set, get) => ({
     })),
 
   setFormData: (formData) => set({ formData }),
+
+  setSource: (source) => set({ source }),
 
   goToStep: (step) => set({ currentStep: step }),
 
@@ -51,6 +56,7 @@ export const useWizardStore = create<WizardState>((set, get) => ({
     set({
       formData: initialFormState,
       currentStep: "job-info",
+      source: null,
     }),
 }));
 

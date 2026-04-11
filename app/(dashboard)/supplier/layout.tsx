@@ -7,14 +7,18 @@ import {
   FileText,
   Truck,
   CreditCard,
+  Users,
+  Settings,
 } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/supplier", icon: LayoutDashboard },
+  { label: "Leads", href: "/supplier/leads", icon: Users },
   { label: "Orders", href: "/supplier/orders", icon: Package },
   { label: "Invoices", href: "/supplier/invoices", icon: FileText },
   { label: "Deliveries", href: "/supplier/deliveries", icon: Truck },
   { label: "Billing", href: "/supplier/billing", icon: CreditCard },
+  { label: "Settings", href: "/supplier/settings", icon: Settings },
 ];
 
 export default function SupplierLayout({

@@ -12,6 +12,17 @@ const nextConfig = {
       { hostname: "hebbkx1anhila5yf.public.blob.vercel-storage.com" },
     ],
   },
+  async headers() {
+    return [
+      {
+        source: "/embed/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "ALLOWALL" },
+          { key: "Content-Security-Policy", value: "frame-ancestors *" },
+        ],
+      },
+    ];
+  },
 }
 
 export default nextConfig

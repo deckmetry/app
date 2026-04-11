@@ -117,7 +117,7 @@ export default function SupplierBillingPage() {
             Platform Subscription
           </CardTitle>
           <CardDescription>
-            Your Deckmetry supplier platform plan — $497/month + $20/seat.
+            Your Deckmetry supplier platform plan — $697/month + $20/seat.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -5,17 +5,6 @@ import { getStripe } from "@/lib/stripe";
 import { redirect } from "next/navigation";
 import { getOrgBillingInfo as _getOrgBillingInfo } from "@/lib/subscription";
 
-// ---- Price ID mappings ----
-
-const HOMEOWNER_PRICE_IDS: Record<string, string | undefined> = {
-  bom: process.env.STRIPE_HOMEOWNER_BOM_PRICE_ID,
-  permit_design: process.env.STRIPE_HOMEOWNER_PERMIT_DESIGN_PRICE_ID,
-  "3d_design": process.env.STRIPE_HOMEOWNER_3D_DESIGN_PRICE_ID,
-  pro_review: process.env.STRIPE_HOMEOWNER_PRO_REVIEW_PRICE_ID,
-};
-
-export type HomeownerProduct = "bom" | "permit_design" | "3d_design" | "pro_review";
-
 // ---- Helpers ----
 
 async function getOrgAndCustomer() {
@@ -86,6 +75,12 @@ export async function createCheckoutSession(priceId: string, quantity?: number) 
     lineItems.push({ price: supplierSeatPriceId, quantity: quantity - 1 });
   }
 
+  // Add one-time supplier setup fee if applicable
+  const supplierSetupPriceId = process.env.STRIPE_SUPPLIER_SETUP_PRICE_ID;
+  if (priceId === supplierPlatformPriceId && supplierSetupPriceId) {
+    lineItems.push({ price: supplierSetupPriceId, quantity: 1 });
+  }
+
   const session = await getStripe().checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
@@ -96,36 +91,6 @@ export async function createCheckoutSession(priceId: string, quantity?: number) 
       metadata: { organization_id: orgId },
     },
     metadata: { organization_id: orgId },
-  });
-
-  if (!session.url) throw new Error("Failed to create checkout session");
-  redirect(session.url);
-}
-
-// ---- Homeowner one-time payment checkout ----
-
-export async function createHomeownerCheckoutSession(
-  productType: HomeownerProduct,
-  estimateId: string
-) {
-  const priceId = HOMEOWNER_PRICE_IDS[productType];
-  if (!priceId) throw new Error(`No price configured for ${productType}`);
-
-  const { user, orgId, customerId } = await getOrgAndCustomer();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-  const session = await getStripe().checkout.sessions.create({
-    customer: customerId,
-    mode: "payment",
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${appUrl}/homeowner/estimates/${estimateId}?purchase=success`,
-    cancel_url: `${appUrl}/homeowner/estimates/${estimateId}?purchase=canceled`,
-    metadata: {
-      organization_id: orgId,
-      user_id: user.id,
-      product_type: productType,
-      entity_id: estimateId,
-    },
   });
 
   if (!session.url) throw new Error("Failed to create checkout session");

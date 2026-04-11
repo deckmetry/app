@@ -4,9 +4,10 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { BomItem } from "@/lib/types";
 import { useWizardStore, useEstimate } from "@/lib/stores/wizard-store";
+import { useEmbed } from "@/lib/contexts/embed-context";
 import { saveEstimate } from "@/lib/actions/estimates";
-import { createHomeownerCheckoutSession } from "@/lib/actions/stripe";
-import type { HomeownerProduct } from "@/lib/actions/stripe";
+import { createHomeownerCheckoutSession, type HomeownerProduct } from "@/lib/actions/purchases";
+import { EmbedEmailModal } from "@/components/deck-estimator/embed-email-modal";
 import { deckingBrands } from "@/lib/catalog";
 import { generateStairId } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -110,6 +111,8 @@ export function ReviewStep() {
   const formData = useWizardStore((s) => s.formData);
   const updateFormData = useWizardStore((s) => s.updateFormData);
   const estimate = useEstimate();
+  const embed = useEmbed();
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [editedQuantities, setEditedQuantities] = useState<Record<string, number>>({});
   const [customItems, setCustomItems] = useState<BomItem[]>([]);
   const [deletedItems, setDeletedItems] = useState<Set<string>>(new Set());
@@ -651,22 +654,39 @@ export function ReviewStep() {
         })}
       </div>
 
-      {/* Save Estimate Button */}
+      {/* Save / Email CTA */}
       <div className="flex justify-center">
-        <Button
-          size="lg"
-          onClick={handleSaveEstimate}
-          disabled={isSaving}
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          {isSaving ? (
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          ) : (
-            <Save className="mr-2 h-5 w-5" />
-          )}
-          {isSaving ? "Saving..." : "Save to Dashboard"}
-        </Button>
+        {embed.isEmbed ? (
+          <Button
+            size="lg"
+            onClick={() => setEmailModalOpen(true)}
+            className="text-white"
+            style={{ backgroundColor: embed.primaryColor }}
+          >
+            <Mail className="mr-2 h-5 w-5" />
+            Email Me This Material List
+          </Button>
+        ) : (
+          <Button
+            size="lg"
+            onClick={handleSaveEstimate}
+            disabled={isSaving}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {isSaving ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-5 w-5" />
+            )}
+            {isSaving ? "Saving..." : "Save to Dashboard"}
+          </Button>
+        )}
       </div>
+
+      {/* Embed email modal */}
+      {embed.isEmbed && (
+        <EmbedEmailModal open={emailModalOpen} onOpenChange={setEmailModalOpen} />
+      )}
 
       {/* Structural Summary */}
       <div className="rounded-xl border-2 border-border bg-card p-6 shadow-sm">
@@ -722,68 +742,70 @@ export function ReviewStep() {
         </div>
       ) : null}
 
-      {/* MVP Action Buttons */}
-      <div className="border-t-2 border-border pt-8 print:hidden">
-        <h3 className="text-base font-semibold uppercase tracking-wide text-foreground mb-6">
-          Next Steps
-        </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Button
-            variant="outline"
-            onClick={handleSaveEstimate}
-            disabled={isSaving}
-            className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
-          >
-            {isSaving ? (
-              <Loader2 className="h-8 w-8 text-primary animate-spin" />
-            ) : (
-              <Save className="h-8 w-8 text-primary" />
-            )}
-            <span className="font-semibold text-base text-foreground">
-              {isSaving ? "Saving..." : "Save to Dashboard"}
-            </span>
-            <span className="text-xs text-muted-foreground text-center">
-              Free — save this estimate
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handlePurchase("permit_design")}
-            disabled={isSaving}
-            className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
-          >
-            <Ruler className="h-8 w-8 text-primary" />
-            <span className="font-semibold text-base text-foreground">Permit-Ready Design</span>
-            <span className="text-xs text-muted-foreground text-center">
-              $197 — drawings for your building dept
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handlePurchase("3d_design")}
-            disabled={isSaving}
-            className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
-          >
-            <Box className="h-8 w-8 text-primary" />
-            <span className="font-semibold text-base text-foreground">3D Design</span>
-            <span className="text-xs text-muted-foreground text-center">
-              $1,597 — photorealistic rendering
-            </span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => handlePurchase("pro_review")}
-            disabled={isSaving}
-            className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
-          >
-            <UserCheck className="h-8 w-8 text-primary" />
-            <span className="font-semibold text-base text-foreground">Pro Review</span>
-            <span className="text-xs text-muted-foreground text-center">
-              $97 — expert plan review
-            </span>
-          </Button>
+      {/* MVP Action Buttons — hidden in embed mode */}
+      {!embed.isEmbed && (
+        <div className="border-t-2 border-border pt-8 print:hidden">
+          <h3 className="text-base font-semibold uppercase tracking-wide text-foreground mb-6">
+            Next Steps
+          </h3>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Button
+              variant="outline"
+              onClick={handleSaveEstimate}
+              disabled={isSaving}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              {isSaving ? (
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              ) : (
+                <Save className="h-8 w-8 text-primary" />
+              )}
+              <span className="font-semibold text-base text-foreground">
+                {isSaving ? "Saving..." : "Save to Dashboard"}
+              </span>
+              <span className="text-xs text-muted-foreground text-center">
+                Free — save this estimate
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handlePurchase("permit_design")}
+              disabled={isSaving}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <Ruler className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Permit-Ready Design</span>
+              <span className="text-xs text-muted-foreground text-center">
+                $197 — drawings for your building dept
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handlePurchase("3d_design")}
+              disabled={isSaving}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <Box className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">3D Design</span>
+              <span className="text-xs text-muted-foreground text-center">
+                $1,597 — photorealistic rendering
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => handlePurchase("pro_review")}
+              disabled={isSaving}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <UserCheck className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Pro Review</span>
+              <span className="text-xs text-muted-foreground text-center">
+                $97 — expert plan review
+              </span>
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Print Footer */}
       <div className="hidden print:block print-footer mt-8 pt-4 border-t border-gray-300">

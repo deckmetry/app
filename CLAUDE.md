@@ -340,3 +340,15 @@ Enable realtime publication on: `notifications`, `orders`, `deliveries`, `invoic
 4. **Supabase Auth PKCE requires `@supabase/ssr`** — not the older `auth-helpers-nextjs`
 5. **`catalog.ts` is seed data** — the DB tables are the source of truth; catalog.ts becomes a migration script
 6. **`activity_log` is immutable** — never add `updated_at` or `deleted_at`; inserts via service role only
+
+---
+
+## LLM Wiki (Business Intelligence Knowledge Base)
+
+A persistent, compounding knowledge base lives in `raw/` (immutable sources) and `wiki/` (structured, interlinked markdown pages). See `wiki/WIKI-CLAUDE.md` for full operating instructions.
+
+- **Ingest sources**: say "ingest [filename]" after placing a file in `raw/`
+- **Query the wiki**: ask any question and it will be answered from wiki pages with citations
+- **Lint/health check**: say "lint" to find contradictions, orphan pages, stale data, and gaps
+- **Search**: `python tools/search.py "query"` (or `--json` for structured output)
+- Domain focus: deck-building industry, building codes, SaaS competitive landscape, multi-user role patterns

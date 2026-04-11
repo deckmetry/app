@@ -1,4 +1,5 @@
 import { getEstimate } from "@/lib/actions/estimates";
+import { checkHomeownerPurchase } from "@/lib/subscription";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { PurchaseCta } from "./purchase-cta";
 
 const CATEGORY_LABELS: Record<string, string> = {
   foundation: "Foundation",
@@ -49,6 +51,8 @@ export default async function HomeownerEstimateDetailPage({
   const estimate = await getEstimate(id);
 
   if (!estimate) notFound();
+
+  const hasPurchasedBom = await checkHomeownerPurchase(id, "bom");
 
   const lineItems = (estimate.estimate_line_items ?? []).sort(
     (a: any, b: any) => a.sort_order - b.sort_order
@@ -193,60 +197,64 @@ export default async function HomeownerEstimateDetailPage({
         </Card>
       )}
 
-      {/* BOM by Category */}
-      {CATEGORY_ORDER.map((cat) => {
-        const items = grouped[cat];
-        if (!items || items.length === 0) return null;
+      {/* BOM by Category — gated behind purchase */}
+      {hasPurchasedBom ? (
+        CATEGORY_ORDER.map((cat) => {
+          const items = grouped[cat];
+          if (!items || items.length === 0) return null;
 
-        return (
-          <Card key={cat}>
-            <CardHeader>
-              <CardTitle className="text-base">
-                {CATEGORY_LABELS[cat] ?? cat}
-                <Badge variant="secondary" className="ml-2">
-                  {items.length}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Size</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead>Unit</TableHead>
-                      <TableHead>Notes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.map((item: any) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium text-sm">
-                          {item.description}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {item.size || "—"}
-                        </TableCell>
-                        <TableCell className="text-right font-mono text-sm">
-                          {item.quantity}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {item.unit}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                          {item.notes || "—"}
-                        </TableCell>
+          return (
+            <Card key={cat}>
+              <CardHeader>
+                <CardTitle className="text-base">
+                  {CATEGORY_LABELS[cat] ?? cat}
+                  <Badge variant="secondary" className="ml-2">
+                    {items.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Size</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead>Unit</TableHead>
+                        <TableHead>Notes</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+                    </TableHeader>
+                    <TableBody>
+                      {items.map((item: any) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium text-sm">
+                            {item.description}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {item.size || "—"}
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-sm">
+                            {item.quantity}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {item.unit}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
+                            {item.notes || "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })
+      ) : (
+        <PurchaseCta estimateId={id} />
+      )}
 
       {/* Assumptions */}
       {estimate.assumptions && estimate.assumptions.length > 0 && (

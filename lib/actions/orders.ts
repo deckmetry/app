@@ -201,7 +201,7 @@ export async function submitOrder(orderId: string): Promise<OrderResult> {
   // Fire event for supplier notification
   const { data: order } = await supabase
     .from("orders")
-    .select("order_number, title, total, supplier_org_id")
+    .select("order_number, title, total, supplier_org_id, organization_id")
     .eq("id", orderId)
     .single();
 
@@ -235,7 +235,7 @@ export async function submitOrder(orderId: string): Promise<OrderResult> {
   revalidatePath("/supplier/orders");
 
   await logActivity({
-    orgId: profile.default_organization_id,
+    orgId: order?.organization_id,
     userId: user.id,
     entityType: "order",
     entityId: orderId,

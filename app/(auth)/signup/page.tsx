@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -42,14 +43,38 @@ const roles: { id: Role; label: string; description: string; icon: React.ReactNo
 ];
 
 export default function SignupPage() {
+  const searchParams = useSearchParams();
+  const refSlug = searchParams.get("ref");
+  const roleParam = searchParams.get("role");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<Role>("homeowner");
+  const [role, setRole] = useState<Role>(
+    (roleParam === "contractor" || roleParam === "supplier" || roleParam === "homeowner")
+      ? roleParam
+      : "homeowner"
+  );
+  const [supplierName, setSupplierName] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // If ref param present, look up supplier name for display
+  useEffect(() => {
+    if (!refSlug) return;
+    const supabase = createClient();
+    supabase
+      .from("organizations")
+      .select("name")
+      .eq("slug", refSlug)
+      .eq("type", "supplier")
+      .single()
+      .then(({ data }) => {
+        if (data) setSupplierName(data.name);
+      });
+  }, [refSlug]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,14 +93,18 @@ export default function SignupPage() {
     setLoading(true);
 
     const supabase = createClient();
+    const metadata: Record<string, string> = {
+      role,
+      full_name: fullName,
+    };
+    if (refSlug) {
+      metadata.supplier_ref = refSlug;
+    }
     const { error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          role,
-          full_name: fullName,
-        },
+        data: metadata,
         emailRedirectTo: `${window.location.origin}/api/auth/callback`,
       },
     });
@@ -150,6 +179,14 @@ export default function SignupPage() {
               ))}
             </div>
           </div>
+
+          {supplierName && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+              <p className="text-xs text-primary font-medium">
+                Signing up via <strong>{supplierName}</strong>
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="fullName">Full name</Label>

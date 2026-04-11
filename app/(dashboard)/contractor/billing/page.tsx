@@ -36,8 +36,8 @@ const TIER_LABELS: Record<string, string> = {
 
 const TIER_DESCRIPTIONS: Record<string, string> = {
   free: "3 estimates per month",
-  solo: "$79/month — up to 50 estimates per month",
-  team: "$79/month + $20/seat — unlimited estimates",
+  solo: "$99/month — up to 50 estimates per month",
+  team: "$149/month + $20/seat — unlimited estimates",
 };
 
 export default function BillingPage() {

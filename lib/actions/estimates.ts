@@ -48,6 +48,22 @@ export async function saveEstimate(
 
   const orgId = profile.default_organization_id;
 
+  // Resolve referral source (ref_<slug> → supplier_<uuid>)
+  let resolvedSource: string | null = null;
+  if (formData.source?.startsWith("ref_")) {
+    const slug = formData.source.slice(4);
+    const { data: supplierOrg } = await supabase
+      .from("organizations")
+      .select("id")
+      .eq("slug", slug)
+      .eq("type", "supplier")
+      .single();
+
+    if (supplierOrg) {
+      resolvedSource = `supplier_${supplierOrg.id}`;
+    }
+  }
+
   // Run the BOM engine server-side (authoritative calculation)
   const estimate = calculateEstimate(formData);
 
@@ -104,6 +120,9 @@ export async function saveEstimate(
 
       // Sharing
       share_token: shareToken,
+
+      // Referral source
+      source: resolvedSource,
 
       // Metadata
       assumptions: estimate.assumptions,
