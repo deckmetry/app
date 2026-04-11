@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { inngest } from "@/lib/inngest/client";
 import { createNotification } from "@/lib/actions/notifications";
+import { logActivity } from "@/lib/actions/activity";
+import { requirePaidPlan } from "@/lib/subscription";
 
 interface OrderLineItemInput {
   category: string;
@@ -118,6 +120,12 @@ export async function createOrderFromQuote(
 }
 
 export async function createOrder(input: CreateOrderInput): Promise<OrderResult> {
+  try {
+    await requirePaidPlan("Creating orders requires a paid plan.");
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Paid plan required" };
+  }
+
   const supabase = await createClient();
 
   const {
@@ -170,6 +178,12 @@ export async function createOrder(input: CreateOrderInput): Promise<OrderResult>
 }
 
 export async function submitOrder(orderId: string): Promise<OrderResult> {
+  try {
+    await requirePaidPlan("Submitting orders requires a paid plan.");
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Paid plan required" };
+  }
+
   const supabase = await createClient();
 
   const {
@@ -219,11 +233,29 @@ export async function submitOrder(orderId: string): Promise<OrderResult> {
 
   revalidatePath("/contractor/orders");
   revalidatePath("/supplier/orders");
+
+  await logActivity({
+    orgId: profile.default_organization_id,
+    userId: user.id,
+    entityType: "order",
+    entityId: orderId,
+    action: "submitted",
+    details: {
+      orderNumber: order?.order_number,
+      supplierOrgId: order?.supplier_org_id,
+    },
+  });
+
   return { success: true, orderId };
 }
 
 export async function confirmOrder(orderId: string): Promise<OrderResult> {
   const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
 
   const { error } = await supabase
     .from("orders")
@@ -253,6 +285,18 @@ export async function confirmOrder(orderId: string): Promise<OrderResult> {
 
   revalidatePath("/supplier/orders");
   revalidatePath("/contractor/orders");
+
+  if (order) {
+    await logActivity({
+      orgId: order.organization_id,
+      userId: user.id,
+      entityType: "order",
+      entityId: orderId,
+      action: "confirmed",
+      details: { orderNumber: order.order_number },
+    });
+  }
+
   return { success: true, orderId };
 }
 

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import type { BomItem } from "@/lib/types";
 import { useWizardStore, useEstimate } from "@/lib/stores/wizard-store";
 import { saveEstimate } from "@/lib/actions/estimates";
+import { createHomeownerCheckoutSession } from "@/lib/actions/stripe";
+import type { HomeownerProduct } from "@/lib/actions/stripe";
 import { deckingBrands } from "@/lib/catalog";
 import { generateStairId } from "@/lib/store";
 import { Button } from "@/components/ui/button";
@@ -48,7 +50,8 @@ import {
   Plus,
   Pencil,
   FileText,
-
+  Ruler,
+  Box,
   UserCheck,
   Trash2,
   Save,
@@ -329,11 +332,13 @@ export function ReviewStep() {
   // Save estimate to database
   const router = useRouter();
   const [isSaving, startSaveTransition] = useTransition();
+  const [savedEstimateId, setSavedEstimateId] = useState<string | null>(null);
 
   const handleSaveEstimate = () => {
     startSaveTransition(async () => {
       const result = await saveEstimate(formData);
       if (result.success) {
+        setSavedEstimateId(result.estimateId ?? null);
         toast.success("Estimate saved to your dashboard", {
           description: "You can view it from your estimates page.",
         });
@@ -344,6 +349,36 @@ export function ReviewStep() {
         });
       }
     });
+  };
+
+  // Purchase a homeowner product (requires saved estimate)
+  const handlePurchase = (productType: HomeownerProduct) => {
+    if (!savedEstimateId) {
+      // Save first, then redirect to purchase
+      startSaveTransition(async () => {
+        const result = await saveEstimate(formData);
+        if (result.success && result.estimateId) {
+          setSavedEstimateId(result.estimateId);
+          try {
+            await createHomeownerCheckoutSession(productType, result.estimateId);
+          } catch {
+            // redirect throws on success
+          }
+        } else {
+          toast.error("Failed to save estimate", {
+            description: result.error,
+          });
+        }
+      });
+    } else {
+      startSaveTransition(async () => {
+        try {
+          await createHomeownerCheckoutSession(productType, savedEstimateId);
+        } catch {
+          // redirect throws on success
+        }
+      });
+    }
   };
 
   return (
@@ -692,7 +727,7 @@ export function ReviewStep() {
         <h3 className="text-base font-semibold uppercase tracking-wide text-foreground mb-6">
           Next Steps
         </h3>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Button
             variant="outline"
             onClick={handleSaveEstimate}
@@ -708,27 +743,43 @@ export function ReviewStep() {
               {isSaving ? "Saving..." : "Save to Dashboard"}
             </span>
             <span className="text-xs text-muted-foreground text-center">
-              Save this estimate to your account
+              Free — save this estimate
             </span>
           </Button>
           <Button
             variant="outline"
+            onClick={() => handlePurchase("permit_design")}
+            disabled={isSaving}
             className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
           >
-            <FileText className="h-8 w-8 text-primary" />
-            <span className="font-semibold text-base text-foreground">Request a Quote</span>
+            <Ruler className="h-8 w-8 text-primary" />
+            <span className="font-semibold text-base text-foreground">Permit-Ready Design</span>
             <span className="text-xs text-muted-foreground text-center">
-              Get pricing for this material list
+              $197 — drawings for your building dept
             </span>
           </Button>
           <Button
             variant="outline"
+            onClick={() => handlePurchase("3d_design")}
+            disabled={isSaving}
+            className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+          >
+            <Box className="h-8 w-8 text-primary" />
+            <span className="font-semibold text-base text-foreground">3D Design</span>
+            <span className="text-xs text-muted-foreground text-center">
+              $1,597 — photorealistic rendering
+            </span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handlePurchase("pro_review")}
+            disabled={isSaving}
             className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
           >
             <UserCheck className="h-8 w-8 text-primary" />
-            <span className="font-semibold text-base text-foreground">Request Pro Review</span>
+            <span className="font-semibold text-base text-foreground">Pro Review</span>
             <span className="text-xs text-muted-foreground text-center">
-              Have an expert review your estimate
+              $97 — expert plan review
             </span>
           </Button>
         </div>

@@ -87,14 +87,32 @@ export async function POST(request: Request) {
         break;
       }
 
-      // ---- Checkout completed — link customer to org ----
+      // ---- Checkout completed — link customer to org + handle one-time payments ----
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        if (session.mode === "subscription" && session.metadata?.organization_id) {
+        const orgId = session.metadata?.organization_id;
+
+        if (orgId) {
+          // Always link customer to org
           await supabase
             .from("organizations")
             .update({ stripe_customer_id: session.customer as string })
-            .eq("id", session.metadata.organization_id);
+            .eq("id", orgId);
+        }
+
+        // Handle one-time homeowner payments
+        if (session.mode === "payment" && orgId && session.metadata?.product_type) {
+          const userId = session.metadata.user_id ?? null;
+          await supabase.from("purchases").insert({
+            organization_id: orgId,
+            user_id: userId,
+            stripe_session_id: session.id,
+            product_type: session.metadata.product_type,
+            entity_id: session.metadata.entity_id ?? null,
+            amount: session.amount_total ?? 0,
+            currency: session.currency ?? "usd",
+            status: "completed",
+          });
         }
         break;
       }

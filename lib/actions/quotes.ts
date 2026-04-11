@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { inngest } from "@/lib/inngest/client";
 import { createNotification } from "@/lib/actions/notifications";
+import { logActivity } from "@/lib/actions/activity";
+import { requirePaidPlan } from "@/lib/subscription";
 
 interface QuoteLineItemInput {
   category: string;
@@ -36,6 +38,12 @@ interface QuoteResult {
 }
 
 export async function createQuote(input: CreateQuoteInput): Promise<QuoteResult> {
+  try {
+    await requirePaidPlan("Creating quotes requires a paid plan. Upgrade at /pricing.");
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Paid plan required" };
+  }
+
   const supabase = await createClient();
 
   const {
@@ -105,6 +113,15 @@ export async function createQuote(input: CreateQuoteInput): Promise<QuoteResult>
   revalidatePath("/contractor/quotes");
   revalidatePath("/contractor");
 
+  await logActivity({
+    orgId,
+    userId: user.id,
+    entityType: "quote",
+    entityId: quote.id,
+    action: "created",
+    details: { title: input.title, estimateId: input.estimate_id },
+  });
+
   return { success: true, quoteId: quote.id };
 }
 
@@ -113,6 +130,12 @@ export async function sendQuote(
   recipientEmail?: string,
   recipientName?: string
 ): Promise<QuoteResult> {
+  try {
+    await requirePaidPlan("Sending quotes requires a paid plan.");
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : "Paid plan required" };
+  }
+
   const supabase = await createClient();
 
   const {
@@ -175,6 +198,20 @@ export async function sendQuote(
 
   revalidatePath("/contractor/quotes");
   revalidatePath("/contractor");
+
+  if (sentQuote) {
+    await logActivity({
+      orgId: sentQuote.organization_id,
+      userId: user.id,
+      entityType: "quote",
+      entityId: quoteId,
+      action: "sent",
+      details: {
+        quoteNumber: sentQuote.quote_number,
+        recipientEmail: recipientEmail ?? null,
+      },
+    });
+  }
 
   return { success: true, quoteId };
 }

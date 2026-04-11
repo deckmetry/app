@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 
-export type PlanTier = "free" | "pro" | "team" | "connected" | "enterprise";
+export type PlanTier = "free" | "solo" | "team" | "supplier_platform";
 
 interface SubscriptionInfo {
   active: boolean;
@@ -9,29 +9,39 @@ interface SubscriptionInfo {
   status: string | null;
 }
 
-const proPriceId = process.env.STRIPE_CONTRACTOR_PRO_PRICE_ID;
-const teamPriceId = process.env.STRIPE_CONTRACTOR_TEAM_PRICE_ID;
-const connectedPriceId = process.env.STRIPE_SUPPLIER_CONNECTED_PRICE_ID;
+// ---- Price ID mappings ----
+
+const soloPriceId = process.env.STRIPE_CONTRACTOR_SOLO_PRICE_ID;
+const teamBasePriceId = process.env.STRIPE_CONTRACTOR_TEAM_BASE_PRICE_ID;
+const supplierPlatformPriceId = process.env.STRIPE_SUPPLIER_PLATFORM_PRICE_ID;
 
 function resolveTier(priceId: string | null): PlanTier {
   if (!priceId) return "free";
-  if (priceId === proPriceId) return "pro";
-  if (priceId === teamPriceId) return "team";
-  if (priceId === connectedPriceId) return "connected";
-  return "pro"; // fallback for unknown paid price
+  if (priceId === soloPriceId) return "solo";
+  if (priceId === teamBasePriceId) return "team";
+  if (priceId === supplierPlatformPriceId) return "supplier_platform";
+  // Seat price IDs are secondary items; the base price determines the tier
+  return "solo"; // fallback for unknown paid price
 }
 
-/**
- * Get the subscription info for the current user's default organization.
- * Call this from server actions / server components.
- */
-export async function getSubscription(): Promise<SubscriptionInfo> {
+// ---- Estimate limits per tier ----
+
+const ESTIMATE_LIMITS: Record<PlanTier, number> = {
+  free: 3,
+  solo: 50,
+  team: Infinity,
+  supplier_platform: Infinity,
+};
+
+// ---- Core subscription lookup ----
+
+async function getOrgIdForUser() {
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { active: false, tier: "free", priceId: null, status: null };
+  if (!user) return { supabase, user: null, orgId: null };
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -39,14 +49,27 @@ export async function getSubscription(): Promise<SubscriptionInfo> {
     .eq("id", user.id)
     .single();
 
-  if (!profile?.default_organization_id) {
+  return {
+    supabase,
+    user,
+    orgId: profile?.default_organization_id ?? null,
+  };
+}
+
+/**
+ * Get the subscription info for the current user's default organization.
+ */
+export async function getSubscription(): Promise<SubscriptionInfo> {
+  const { supabase, user, orgId } = await getOrgIdForUser();
+
+  if (!user || !orgId) {
     return { active: false, tier: "free", priceId: null, status: null };
   }
 
   const { data: sub } = await supabase
     .from("subscriptions")
     .select("status, price_id")
-    .eq("organization_id", profile.default_organization_id)
+    .eq("organization_id", orgId)
     .in("status", ["active", "trialing"])
     .limit(1)
     .single();
@@ -65,22 +88,24 @@ export async function getSubscription(): Promise<SubscriptionInfo> {
 
 /**
  * Check if the org has a paid plan. Throws if not.
- * Use in server actions to gate paid features.
  */
-export async function requirePaidPlan(message?: string): Promise<SubscriptionInfo> {
+export async function requirePaidPlan(
+  message?: string
+): Promise<SubscriptionInfo> {
   const sub = await getSubscription();
   if (!sub.active) {
-    throw new Error(message ?? "This feature requires a paid plan. Please upgrade at /pricing.");
+    throw new Error(
+      message ?? "This feature requires a paid plan. Please upgrade at /pricing."
+    );
   }
   return sub;
 }
 
-// ---------- Plan limits ----------
-
-const FREE_ESTIMATES_PER_MONTH = 3;
+// ---- Estimate limits ----
 
 /**
- * Check if the free tier org has hit their monthly estimate limit.
+ * Check if the org has hit their monthly estimate limit.
+ * Free: 3/mo, Solo: 50/mo, Team+Supplier: unlimited.
  */
 export async function checkEstimateLimit(): Promise<{
   allowed: boolean;
@@ -88,30 +113,15 @@ export async function checkEstimateLimit(): Promise<{
   limit: number;
 }> {
   const sub = await getSubscription();
+  const limit = ESTIMATE_LIMITS[sub.tier];
 
-  // Paid plans have unlimited estimates
-  if (sub.active) {
+  if (limit === Infinity) {
     return { allowed: true, used: 0, limit: Infinity };
   }
 
-  const supabase = await createClient();
+  const { supabase, orgId } = await getOrgIdForUser();
+  if (!orgId) return { allowed: false, used: 0, limit };
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { allowed: false, used: 0, limit: FREE_ESTIMATES_PER_MONTH };
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("default_organization_id")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.default_organization_id) {
-    return { allowed: false, used: 0, limit: FREE_ESTIMATES_PER_MONTH };
-  }
-
-  // Count estimates created this month
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
@@ -119,15 +129,74 @@ export async function checkEstimateLimit(): Promise<{
   const { count } = await supabase
     .from("estimates")
     .select("id", { count: "exact", head: true })
-    .eq("organization_id", profile.default_organization_id)
+    .eq("organization_id", orgId)
     .gte("created_at", startOfMonth.toISOString())
     .is("deleted_at", null);
 
   const used = count ?? 0;
 
+  return { allowed: used < limit, used, limit };
+}
+
+// ---- Homeowner purchase checks ----
+
+export type HomeownerProductType = "bom" | "permit_design" | "3d_design" | "pro_review";
+
+/**
+ * Check if a homeowner has purchased a specific product for an entity (estimate).
+ */
+export async function checkHomeownerPurchase(
+  estimateId: string,
+  productType: HomeownerProductType
+): Promise<boolean> {
+  const { supabase, orgId } = await getOrgIdForUser();
+  if (!orgId) return false;
+
+  const { count } = await supabase
+    .from("purchases")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", orgId)
+    .eq("product_type", productType)
+    .eq("entity_id", estimateId)
+    .eq("status", "completed");
+
+  return (count ?? 0) > 0;
+}
+
+// ---- Org billing info ----
+
+interface OrgBillingInfo {
+  orgId: string;
+  orgType: string;
+  tier: PlanTier;
+  seatCount: number;
+  active: boolean;
+  stripeCustomerId: string | null;
+}
+
+/**
+ * Full billing info for the current user's org.
+ */
+export async function getOrgBillingInfo(): Promise<OrgBillingInfo | null> {
+  const { supabase, user, orgId } = await getOrgIdForUser();
+  if (!user || !orgId) return null;
+
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("id, type, seat_count, stripe_customer_id")
+    .eq("id", orgId)
+    .single();
+
+  if (!org) return null;
+
+  const sub = await getSubscription();
+
   return {
-    allowed: used < FREE_ESTIMATES_PER_MONTH,
-    used,
-    limit: FREE_ESTIMATES_PER_MONTH,
+    orgId: org.id,
+    orgType: org.type,
+    tier: sub.tier,
+    seatCount: org.seat_count ?? 1,
+    active: sub.active,
+    stripeCustomerId: org.stripe_customer_id,
   };
 }

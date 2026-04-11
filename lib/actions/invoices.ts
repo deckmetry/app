@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/actions/activity";
 
 interface InvoiceResult {
   success: boolean;
@@ -69,6 +70,20 @@ export async function createInvoiceFromOrder(
   }
 
   revalidatePath("/supplier/invoices");
+
+  await logActivity({
+    orgId: profile.default_organization_id,
+    userId: user.id,
+    entityType: "invoice",
+    entityId: invoice.id,
+    action: "created",
+    details: {
+      invoiceNumber: invoice.invoice_number,
+      orderId,
+      total: Number(order.total),
+    },
+  });
+
   return { success: true, invoiceId: invoice.id };
 }
 

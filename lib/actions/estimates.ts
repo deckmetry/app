@@ -5,6 +5,7 @@ import { calculateEstimate } from "@/lib/calculations";
 import type { EstimateInput, BomItem } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { checkEstimateLimit } from "@/lib/subscription";
+import { logActivity } from "@/lib/actions/activity";
 
 interface SaveEstimateResult {
   success: boolean;
@@ -164,6 +165,20 @@ export async function saveEstimate(
   }
 
   revalidatePath("/dashboard");
+
+  await logActivity({
+    orgId,
+    userId: user.id,
+    entityType: "estimate",
+    entityId: estimateId,
+    action: "created",
+    details: {
+      projectName: formData.projectName || "Untitled Estimate",
+      deckType: formData.deckType,
+      areaSf: estimate.derived.deckAreaSf,
+      bomItems: estimate.bom.length,
+    },
+  });
 
   return { success: true, estimateId };
 }
