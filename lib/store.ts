@@ -23,8 +23,10 @@ export const initialFormState: EstimateInput = {
   deckingBrand: "trex",
   deckingCollection: "trex-enhance",
   deckingColor: "Honey Grove",
+  pictureFrameEnabled: false,
+  pictureFrameType: null,
   pictureFrameColor: "Honey Grove",
-  pictureFrameEnabled: true,
+  pictureFrameColor2: "Honey Grove",
 
   // Railing + Stairs
   railingRequiredOverride: null,
@@ -42,11 +44,11 @@ export const initialFormState: EstimateInput = {
 };
 
 export const WIZARD_STEPS: { id: WizardStep; label: string; shortLabel: string }[] = [
-  { id: "job-info", label: "Job Information", shortLabel: "Job Info" },
   { id: "geometry", label: "Deck Geometry", shortLabel: "Geometry" },
   { id: "surface", label: "Surface Selection", shortLabel: "Surface" },
   { id: "railing-stairs", label: "Railing & Stairs", shortLabel: "Railing" },
   { id: "add-ons", label: "Add-ons", shortLabel: "Add-ons" },
+  { id: "job-info", label: "Job Information", shortLabel: "Job Info" },
   { id: "review", label: "Review & BOM", shortLabel: "Review" },
 ];
 

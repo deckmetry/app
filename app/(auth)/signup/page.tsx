@@ -16,18 +16,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Hexagon, Loader2, Home, Hammer, Truck } from "lucide-react";
+import { Hexagon, Loader2, Hammer, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Role = "homeowner" | "contractor" | "supplier";
 
 const roles: { id: Role; label: string; description: string; icon: React.ReactNode }[] = [
-  {
-    id: "homeowner",
-    label: "Homeowner",
-    description: "I'm building a deck",
-    icon: <Home className="h-5 w-5" />,
-  },
   {
     id: "contractor",
     label: "Contractor",
@@ -52,9 +46,9 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<Role>(
-    (roleParam === "contractor" || roleParam === "supplier" || roleParam === "homeowner")
+    (roleParam === "contractor" || roleParam === "supplier")
       ? roleParam
-      : "homeowner"
+      : "contractor"
   );
   const [supplierName, setSupplierName] = useState<string | null>(null);
   const [error, setError] = useState("");

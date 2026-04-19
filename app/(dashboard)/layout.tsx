@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AdminProvider } from "@/lib/contexts/admin-context";
+import { Toaster } from "@/components/ui/sonner";
 
 export default async function DashboardLayout({
   children,
@@ -65,5 +66,10 @@ export default async function DashboardLayout({
     }
   }
 
-  return <AdminProvider isMasterAdmin={isMasterAdmin}>{children}</AdminProvider>;
+  return (
+    <AdminProvider isMasterAdmin={isMasterAdmin}>
+      {children}
+      <Toaster position="bottom-right" />
+    </AdminProvider>
+  );
 }

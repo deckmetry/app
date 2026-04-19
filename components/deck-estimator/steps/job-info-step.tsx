@@ -2,23 +2,20 @@
 
 import { useWizardStore } from "@/lib/stores/wizard-store";
 import { Input } from "@/components/ui/input";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
-import { User, Mail, Phone, MapPin, Truck, Calendar } from "lucide-react";
+import { User, Mail, Phone, MapPin } from "lucide-react";
 
 export function JobInfoStep() {
   const formData = useWizardStore((s) => s.formData);
   const updateFormData = useWizardStore((s) => s.updateFormData);
-  // Calculate minimum date (48 hours from now)
-  const minDate = new Date();
-  minDate.setDate(minDate.getDate() + 2);
-  const minDateStr = minDate.toISOString().split("T")[0];
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold tracking-tight">Job Information</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Enter the contractor and project details for this estimate.
+          Tell us a bit about yourself and where the deck will be built.
         </p>
       </div>
 
@@ -27,12 +24,13 @@ export function JobInfoStep() {
           <Field>
             <FieldLabel className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
-              Contractor / Company
+              Full Name
             </FieldLabel>
             <Input
-              placeholder="Enter contractor or company name"
+              placeholder="Jane Smith"
               value={formData.contractorName}
               onChange={(e) => updateFormData({ contractorName: e.target.value })}
+              required
             />
           </Field>
 
@@ -43,9 +41,10 @@ export function JobInfoStep() {
             </FieldLabel>
             <Input
               type="email"
-              placeholder="contractor@example.com"
+              placeholder="you@example.com"
               value={formData.email}
               onChange={(e) => updateFormData({ email: e.target.value })}
+              required
             />
           </Field>
 
@@ -53,25 +52,23 @@ export function JobInfoStep() {
             <FieldLabel className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-muted-foreground" />
               Phone Number
-              <span className="text-muted-foreground">(Optional)</span>
             </FieldLabel>
             <Input
               type="tel"
               placeholder="(555) 123-4567"
               value={formData.phone}
               onChange={(e) => updateFormData({ phone: e.target.value })}
+              required
             />
           </Field>
 
           <Field>
-            <FieldLabel>
-              Project Name
-              <span className="text-muted-foreground ml-1">(Optional)</span>
-            </FieldLabel>
+            <FieldLabel>Project Name</FieldLabel>
             <Input
-              placeholder="e.g., Smith Residence Deck"
+              placeholder="e.g., Backyard Deck"
               value={formData.projectName}
               onChange={(e) => updateFormData({ projectName: e.target.value })}
+              required
             />
           </Field>
         </div>
@@ -85,45 +82,14 @@ export function JobInfoStep() {
             <MapPin className="h-4 w-4 text-muted-foreground" />
             Project Address
           </FieldLabel>
-          <Input
-            placeholder="123 Main St, City, State ZIP"
+          <AddressAutocomplete
             value={formData.projectAddress}
-            onChange={(e) => updateFormData({ projectAddress: e.target.value })}
+            onChange={(val) => updateFormData({ projectAddress: val })}
+            placeholder="123 Main St, City, State ZIP"
+            required
           />
         </Field>
 
-        <Field>
-          <FieldLabel className="flex items-center gap-2">
-            <Truck className="h-4 w-4 text-muted-foreground" />
-            Delivery Address
-          </FieldLabel>
-          <p className="text-xs text-muted-foreground mb-2">
-            If different from Project Address
-          </p>
-          <Input
-            placeholder="Leave blank if same as project address"
-            value={formData.deliveryAddress}
-            onChange={(e) => updateFormData({ deliveryAddress: e.target.value })}
-          />
-        </Field>
-
-        <Field>
-          <FieldLabel className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            Requested Delivery Date
-          </FieldLabel>
-          <p className="text-xs text-muted-foreground mb-2">
-            Minimum 48 hours lead time required
-          </p>
-          <Input
-            type="date"
-            min={minDateStr}
-            value={formData.requestedDeliveryDate}
-            onChange={(e) =>
-              updateFormData({ requestedDeliveryDate: e.target.value })
-            }
-          />
-        </Field>
       </FieldGroup>
     </div>
   );

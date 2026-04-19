@@ -84,14 +84,16 @@ function LayerControls() {
   );
 }
 
-export function WizardShell() {
+export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
   const currentStep = useWizardStore((s) => s.currentStep);
   const formData = useWizardStore((s) => s.formData);
   const goToStep = useWizardStore((s) => s.goToStep);
   const goNext = useWizardStore((s) => s.goNext);
   const goPrevious = useWizardStore((s) => s.goPrevious);
   const updateFormData = useWizardStore((s) => s.updateFormData);
+  const setFormData = useWizardStore((s) => s.setFormData);
   const setSource = useWizardStore((s) => s.setSource);
+  const setEditingEstimateId = useWizardStore((s) => s.setEditingEstimateId);
   const currentStepIndex = useCurrentStepIndex();
   const estimate = useEstimate();
 
@@ -102,6 +104,51 @@ export function WizardShell() {
   // Read URL params for supplier referral + project pre-population
   const searchParams = useSearchParams();
   useEffect(() => {
+    // Load existing estimate for editing
+    if (initialEstimate) {
+      const e = initialEstimate;
+      setEditingEstimateId(e.id);
+      setFormData({
+        contractorName: e.contractor_name ?? "",
+        email: e.email ?? "",
+        phone: e.phone ?? "",
+        projectName: e.project_name ?? "",
+        projectAddress: e.project_address ?? "",
+        deliveryAddress: e.delivery_address ?? "",
+        requestedDeliveryDate: e.requested_delivery_date ?? "",
+        deckType: e.deck_type ?? "attached",
+        deckWidthFt: e.deck_width_ft ?? 16,
+        deckProjectionFt: e.deck_projection_ft ?? 12,
+        deckHeightIn: e.deck_height_in ?? 36,
+        joistSpacingIn: e.joist_spacing_in ?? 12,
+        deckingBrand: e.decking_brand ?? "trex",
+        deckingCollection: e.decking_collection ?? "trex-enhance",
+        deckingColor: e.decking_color ?? "",
+        pictureFrameEnabled: e.picture_frame_enabled ?? false,
+        pictureFrameType: e.picture_frame_enabled ? "single" : null,
+        pictureFrameColor: e.picture_frame_color ?? "",
+        pictureFrameColor2: "",
+        railingRequiredOverride: e.railing_required_override ?? null,
+        railingMaterial: e.railing_material ?? "",
+        railingColor: e.railing_color ?? "",
+        openSides: e.open_sides ?? [],
+        stairSections: (e.estimate_stair_sections ?? []).map((s: any) => ({
+          id: s.id,
+          location: s.location,
+          widthFt: s.width_ft,
+          stepCount: s.step_count,
+        })),
+        latticeSkirt: e.lattice_skirt ?? false,
+        horizontalSkirt: e.horizontal_skirt ?? false,
+        postCapLights: e.post_cap_lights ?? false,
+        stairLights: e.stair_lights ?? false,
+        accentLights: e.accent_lights ?? false,
+        source: null,
+      });
+      goToStep("geometry");
+      return;
+    }
+
     const ref = searchParams.get("ref");
     if (ref) {
       setSource(`ref_${ref}`);
@@ -268,37 +315,45 @@ export function WizardShell() {
               </ol>
             </nav>
 
-            {/* Form Content */}
-            <div className="rounded-xl border bg-card p-6 shadow-sm print:rounded-none print:border-none print:shadow-none print:p-0">
-              {renderStep()}
-            </div>
+            {/* Form Content + Navigation */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                goNext();
+              }}
+            >
+              <div className="rounded-xl border bg-card p-6 shadow-sm print:rounded-none print:border-none print:shadow-none print:p-0">
+                {renderStep()}
+              </div>
 
-            {/* Navigation Buttons */}
-            <div className="flex items-center justify-between print:hidden">
-              {currentStepIndex > 0 ? (
-                <Button
-                  variant="outline"
-                  onClick={goPrevious}
-                  className="border-2"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Previous
-                </Button>
-              ) : (
-                <div />
-              )}
-              {currentStepIndex < WIZARD_STEPS.length - 1 ? (
-                <Button
-                  onClick={goNext}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  Next
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </Button>
-              ) : (
-                <div />
-              )}
-            </div>
+              {/* Navigation Buttons */}
+              <div className="flex items-center justify-between mt-6 print:hidden">
+                {currentStepIndex > 0 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={goPrevious}
+                    className="border-2"
+                  >
+                    <ChevronLeft className="mr-2 h-4 w-4" />
+                    Previous
+                  </Button>
+                ) : (
+                  <div />
+                )}
+                {currentStepIndex < WIZARD_STEPS.length - 1 ? (
+                  <Button
+                    type="submit"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    Next
+                    <ChevronRight className="ml-2 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <div />
+                )}
+              </div>
+            </form>
           </div>
 
           {/* Right Column: Live Summary - 30% of screen */}
@@ -312,22 +367,6 @@ export function WizardShell() {
               </div>
 
               <div className="p-5 space-y-5">
-                {/* Show empty state on first page before user has entered data */}
-                {currentStep === "job-info" ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                      <Layers className="h-8 w-8 text-muted-foreground/50" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                      No Project Data Yet
-                    </h3>
-                    <p className="text-xs text-muted-foreground/70 max-w-[200px]">
-                      Fill out the job information form to see your deck plan and
-                      project summary.
-                    </p>
-                  </div>
-                ) : (
-                  <>
                     {/* Deck Drawing with Layers */}
                     <div className="bg-muted/20 rounded-lg border border-border overflow-hidden">
                       <div className="flex items-center justify-between px-4 py-2 bg-muted/40 border-b border-border">
@@ -522,8 +561,6 @@ export function WizardShell() {
                         {estimate.bom.length} items
                       </Badge>
                     </div>
-                  </>
-                )}
               </div>
             </div>
           </aside>

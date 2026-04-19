@@ -18,7 +18,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Search, X, Building2, Mail, UserPlus } from "lucide-react";
+import { Plus, Search, X, Building2, Mail, UserPlus, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 type Role = "homeowner" | "contractor" | "supplier";
 type LinkMode = "search" | "create" | "invite";
@@ -109,38 +110,36 @@ export function CreateProjectDialog({ role }: CreateProjectDialogProps) {
     if (!name.trim()) return;
 
     startTransition(async () => {
-      const result = await createProject({
-        name: name.trim(),
-        address: address.trim() || undefined,
-        description: description.trim() || undefined,
-        linkedOrgId: selectedOrg?.id,
-        linkedOrgRole: selectedOrg
-          ? (selectedOrg.type as "homeowner" | "contractor" | "supplier")
-          : undefined,
-        inviteEmail: linkMode === "invite" && !selectedOrg && inviteEmail.trim()
-          ? inviteEmail.trim()
-          : undefined,
-        newCustomer: linkMode === "create" && newCustomerName.trim()
-          ? {
-              name: newCustomerName.trim(),
-              email: newCustomerEmail.trim() || undefined,
-              phone: newCustomerPhone.trim() || undefined,
-            }
-          : undefined,
-      });
-
-      if (result.success && result.projectId) {
-        setOpen(false);
-        resetForm();
-        // Redirect to wizard with project data pre-populated, starting at geometry step
-        const params = new URLSearchParams({
-          projectId: result.projectId,
-          startStep: "geometry",
-          role,
+      try {
+        const result = await createProject({
+          name: name.trim(),
+          address: address.trim() || undefined,
+          description: description.trim() || undefined,
+          linkedOrgId: selectedOrg?.id,
+          linkedOrgRole: selectedOrg
+            ? (selectedOrg.type as "homeowner" | "contractor" | "supplier")
+            : undefined,
+          inviteEmail: linkMode === "invite" && !selectedOrg && inviteEmail.trim()
+            ? inviteEmail.trim()
+            : undefined,
+          newCustomer: linkMode === "create" && newCustomerName.trim()
+            ? {
+                name: newCustomerName.trim(),
+                email: newCustomerEmail.trim() || undefined,
+                phone: newCustomerPhone.trim() || undefined,
+              }
+            : undefined,
         });
-        if (name.trim()) params.set("projectName", name.trim());
-        if (address.trim()) params.set("projectAddress", address.trim());
-        router.push(`/estimate?${params.toString()}`);
+
+        if (result.success && result.projectId) {
+          setOpen(false);
+          resetForm();
+          router.push(`/${role}/projects/${result.projectId}`);
+        } else {
+          toast.error(result.error ?? "Failed to create project");
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Failed to create project");
       }
     });
   }
@@ -376,6 +375,7 @@ export function CreateProjectDialog({ role }: CreateProjectDialogProps) {
                 (linkMode === "create" && showOrgLinking && !selectedOrg && !newCustomerName.trim())
               }
             >
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isPending ? "Creating..." : "Create Project"}
             </Button>
           </DialogFooter>

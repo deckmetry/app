@@ -252,6 +252,89 @@ export async function saveEstimate(
   return { success: true, estimateId, projectId: project?.id };
 }
 
+export async function updateEstimate(
+  estimateId: string,
+  formData: EstimateInput
+): Promise<SaveEstimateResult> {
+  const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const estimate = calculateEstimate(formData);
+
+  const { error: updateError } = await supabase
+    .from("estimates")
+    .update({
+      project_name: formData.projectName || "Untitled Estimate",
+      project_address: formData.projectAddress || null,
+      contractor_name: formData.contractorName || null,
+      email: formData.email || null,
+      phone: formData.phone || null,
+      deck_type: formData.deckType,
+      deck_width_ft: formData.deckWidthFt,
+      deck_projection_ft: formData.deckProjectionFt,
+      deck_height_in: formData.deckHeightIn,
+      joist_spacing_in: formData.joistSpacingIn,
+      decking_brand: formData.deckingBrand || null,
+      decking_collection: formData.deckingCollection || null,
+      decking_color: formData.deckingColor || null,
+      picture_frame_color: formData.pictureFrameColor || null,
+      picture_frame_enabled: formData.pictureFrameEnabled,
+      railing_required_override: formData.railingRequiredOverride,
+      railing_material: formData.railingMaterial || null,
+      railing_color: formData.railingColor || null,
+      open_sides: formData.openSides,
+      lattice_skirt: formData.latticeSkirt,
+      horizontal_skirt: formData.horizontalSkirt,
+      post_cap_lights: formData.postCapLights,
+      stair_lights: formData.stairLights,
+      accent_lights: formData.accentLights,
+      total_area_sf: estimate.derived.deckAreaSf,
+      total_bom_items: estimate.bom.length,
+      assumptions: estimate.assumptions,
+      warnings: estimate.warnings,
+    })
+    .eq("id", estimateId);
+
+  if (updateError) return { success: false, error: updateError.message };
+
+  // Replace line items
+  await supabase.from("estimate_line_items").delete().eq("estimate_id", estimateId);
+  if (estimate.bom.length > 0) {
+    await supabase.from("estimate_line_items").insert(
+      estimate.bom.map((item: BomItem, index: number) => ({
+        estimate_id: estimateId,
+        category: item.category,
+        description: item.description,
+        size: item.size || null,
+        quantity: item.quantity,
+        unit: item.unit,
+        notes: item.notes || null,
+        sort_order: index,
+        is_manual_override: false,
+      }))
+    );
+  }
+
+  // Replace stair sections
+  await supabase.from("estimate_stair_sections").delete().eq("estimate_id", estimateId);
+  if (formData.stairSections.length > 0) {
+    await supabase.from("estimate_stair_sections").insert(
+      formData.stairSections.map((stair, index) => ({
+        estimate_id: estimateId,
+        location: stair.location,
+        width_ft: stair.widthFt,
+        step_count: stair.stepCount,
+        sort_order: index,
+      }))
+    );
+  }
+
+  revalidatePath(`/contractor/estimates/${estimateId}`);
+  return { success: true, estimateId };
+}
+
 export async function getEstimate(estimateId: string) {
   const supabase = await createClient();
 

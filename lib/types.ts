@@ -93,8 +93,10 @@ export interface EstimateInput {
   deckingBrand: string;
   deckingCollection: string;
   deckingColor: string;
-  pictureFrameColor: string; // Can be same or different from main deck
   pictureFrameEnabled: boolean;
+  pictureFrameType: "single" | "double" | null;
+  pictureFrameColor: string;  // Border 1 color
+  pictureFrameColor2: string; // Border 2 color (double board only)
 
   // Railing + Stairs
   railingRequiredOverride: boolean | null;

@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -79,6 +79,12 @@ export default async function ContractorEstimateDetailPage({
         title={estimate.project_name || "Untitled Estimate"}
         description={`${estimate.deck_width_ft}' × ${estimate.deck_projection_ft}' ${estimate.deck_type} deck — ${estimate.total_area_sf ?? "—"} sf • ${lineItems.length} BOM items`}
       >
+        <Link href={`/estimate?edit=${id}`}>
+          <Button size="sm" variant="outline" className="gap-2">
+            <Pencil className="h-4 w-4" />
+            Edit Estimate
+          </Button>
+        </Link>
         <Link href={`/contractor/estimates/${id}/quote`}>
           <Button size="sm" className="gap-2">
             <FileText className="h-4 w-4" />
@@ -248,6 +254,12 @@ export default async function ContractorEstimateDetailPage({
       <div className="flex gap-3">
         <Link href="/contractor/estimates">
           <Button variant="outline">Back to Estimates</Button>
+        </Link>
+        <Link href={`/estimate?edit=${id}`}>
+          <Button variant="outline" className="gap-2">
+            <Pencil className="h-4 w-4" />
+            Edit Estimate
+          </Button>
         </Link>
         <Link href={`/contractor/estimates/${id}/quote`}>
           <Button className="gap-2">

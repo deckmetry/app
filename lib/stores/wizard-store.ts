@@ -10,10 +10,12 @@ interface WizardState {
   formData: EstimateInput;
   currentStep: WizardStep;
   source: string | null;
+  editingEstimateId: string | null;
 
   updateFormData: (updates: Partial<EstimateInput>) => void;
   setFormData: (formData: EstimateInput) => void;
   setSource: (source: string | null) => void;
+  setEditingEstimateId: (id: string | null) => void;
   goToStep: (step: WizardStep) => void;
   goNext: () => void;
   goPrevious: () => void;
@@ -22,8 +24,9 @@ interface WizardState {
 
 export const useWizardStore = create<WizardState>((set, get) => ({
   formData: initialFormState,
-  currentStep: "job-info",
+  currentStep: "geometry",
   source: null,
+  editingEstimateId: null,
 
   updateFormData: (updates) =>
     set((state) => ({
@@ -33,6 +36,8 @@ export const useWizardStore = create<WizardState>((set, get) => ({
   setFormData: (formData) => set({ formData }),
 
   setSource: (source) => set({ source }),
+
+  setEditingEstimateId: (id) => set({ editingEstimateId: id }),
 
   goToStep: (step) => set({ currentStep: step }),
 
@@ -55,8 +60,9 @@ export const useWizardStore = create<WizardState>((set, get) => ({
   reset: () =>
     set({
       formData: initialFormState,
-      currentStep: "job-info",
+      currentStep: "geometry",
       source: null,
+      editingEstimateId: null,
     }),
 }));
 

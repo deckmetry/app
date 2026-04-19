@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import { Palette, Layers, Square, Frame } from "lucide-react";
@@ -300,35 +299,67 @@ export function SurfaceStep() {
       {/* Picture Frame */}
       <FieldGroup>
         <Field>
-          <div className="flex items-center justify-between">
-            <div>
-              <FieldLabel className="mb-0 flex items-center gap-2">
-                <Frame className="h-4 w-4 text-muted-foreground" />
-                Picture Frame Border
-              </FieldLabel>
-              <p className="text-xs text-muted-foreground">
-                Add a contrasting or matching border around the deck perimeter
-              </p>
-            </div>
-            <Switch
-              checked={formData.pictureFrameEnabled}
-              onCheckedChange={(checked) =>
-                updateFormData({ pictureFrameEnabled: checked })
-              }
-            />
+          <FieldLabel className="flex items-center gap-2">
+            <Frame className="h-4 w-4 text-muted-foreground" />
+            Picture Framing
+          </FieldLabel>
+          <p className="text-xs text-muted-foreground mb-3">
+            Add a border around the deck perimeter using solid boards
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {(["none", "single", "double"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => {
+                  if (type === "none") {
+                    updateFormData({ pictureFrameEnabled: false, pictureFrameType: null });
+                  } else {
+                    updateFormData({ pictureFrameEnabled: true, pictureFrameType: type });
+                  }
+                }}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-xl border-2 p-4 text-center transition-all hover:bg-muted/50",
+                  (type === "none" ? !formData.pictureFrameEnabled : formData.pictureFrameType === type)
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border"
+                )}
+              >
+                {/* Icon */}
+                <div className="relative w-10 h-10 flex items-center justify-center">
+                  {type === "none" && (
+                    <div className="w-8 h-8 rounded border-2 border-dashed border-muted-foreground/40" />
+                  )}
+                  {type === "single" && (
+                    <div className="w-8 h-8 rounded border-[3px] border-primary/70 bg-primary/10" />
+                  )}
+                  {type === "double" && (
+                    <div className="w-8 h-8 rounded border-[3px] border-primary/70 bg-primary/10 relative">
+                      <div className="absolute inset-[3px] rounded border-[2px] border-primary/40" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold capitalize">
+                    {type === "none" ? "No Frame" : type === "single" ? "Single Board" : "Double Board"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {type === "none" ? "No border" : type === "single" ? "1 border board" : "2 border boards"}
+                  </p>
+                </div>
+              </button>
+            ))}
           </div>
         </Field>
 
-        {formData.pictureFrameEnabled && (
+        {/* Single board — one color picker */}
+        {formData.pictureFrameEnabled && formData.pictureFrameType === "single" && (
           <Field>
             <FieldLabel className="flex items-center gap-2">
               <Palette className="h-4 w-4 text-muted-foreground" />
-              Picture Frame Color
+              Border Color
             </FieldLabel>
-            <p className="text-xs text-muted-foreground mb-2">
-              Can be the same or different from the main deck color
-            </p>
-            <div className="grid grid-cols-4 gap-2 pt-1 sm:grid-cols-6 lg:grid-cols-8">
+            <div className="grid grid-cols-4 gap-2 pt-2 sm:grid-cols-6 lg:grid-cols-8">
               {selectedCollection?.colors.map((color) => (
                 <button
                   key={color.name}
@@ -337,29 +368,17 @@ export function SurfaceStep() {
                   className={cn(
                     "rounded-lg border-2 overflow-hidden transition-all hover:shadow-md",
                     formData.pictureFrameColor === color.name
-                      ? "border-accent ring-2 ring-accent/20 shadow-sm"
+                      ? "border-primary ring-2 ring-primary/20 shadow-sm"
                       : "border-border hover:border-muted-foreground/30"
                   )}
                 >
                   {COLOR_IMAGES[color.name] ? (
-                    <div 
-                      className="aspect-square w-full bg-cover bg-center"
-                      style={{ backgroundImage: `url(${COLOR_IMAGES[color.name]})` }}
-                    />
+                    <div className="aspect-square w-full bg-cover bg-center" style={{ backgroundImage: `url(${COLOR_IMAGES[color.name]})` }} />
                   ) : (
-                    <div 
-                      className="aspect-square w-full"
-                      style={{ 
-                        backgroundColor: COLOR_SWATCHES[color.name] || '#9a9a9a',
-                        backgroundImage: `linear-gradient(135deg, ${COLOR_SWATCHES[color.name] || '#9a9a9a'} 0%, ${adjustColorBrightness(COLOR_SWATCHES[color.name] || '#9a9a9a', -15)} 100%)`
-                      }}
-                    />
+                    <div className="aspect-square w-full" style={{ backgroundColor: COLOR_SWATCHES[color.name] || '#9a9a9a', backgroundImage: `linear-gradient(135deg, ${COLOR_SWATCHES[color.name] || '#9a9a9a'} 0%, ${adjustColorBrightness(COLOR_SWATCHES[color.name] || '#9a9a9a', -15)} 100%)` }} />
                   )}
                   <div className="px-1 py-1 bg-background">
-                    <p className={cn(
-                      "text-[10px] font-medium truncate text-center",
-                      formData.pictureFrameColor === color.name ? "text-accent" : "text-foreground"
-                    )}>
+                    <p className={cn("text-[10px] font-medium truncate text-center", formData.pictureFrameColor === color.name ? "text-primary" : "text-foreground")}>
                       {color.name}
                     </p>
                   </div>
@@ -368,6 +387,79 @@ export function SurfaceStep() {
             </div>
           </Field>
         )}
+
+        {/* Double board — two color pickers */}
+        {formData.pictureFrameEnabled && formData.pictureFrameType === "double" && (
+          <>
+            <Field>
+              <FieldLabel className="flex items-center gap-2">
+                <Palette className="h-4 w-4 text-muted-foreground" />
+                Border 1 Color
+                <span className="text-[10px] text-muted-foreground font-normal">(outer board)</span>
+              </FieldLabel>
+              <div className="grid grid-cols-4 gap-2 pt-2 sm:grid-cols-6 lg:grid-cols-8">
+                {selectedCollection?.colors.map((color) => (
+                  <button
+                    key={color.name}
+                    type="button"
+                    onClick={() => updateFormData({ pictureFrameColor: color.name })}
+                    className={cn(
+                      "rounded-lg border-2 overflow-hidden transition-all hover:shadow-md",
+                      formData.pictureFrameColor === color.name
+                        ? "border-primary ring-2 ring-primary/20 shadow-sm"
+                        : "border-border hover:border-muted-foreground/30"
+                    )}
+                  >
+                    {COLOR_IMAGES[color.name] ? (
+                      <div className="aspect-square w-full bg-cover bg-center" style={{ backgroundImage: `url(${COLOR_IMAGES[color.name]})` }} />
+                    ) : (
+                      <div className="aspect-square w-full" style={{ backgroundColor: COLOR_SWATCHES[color.name] || '#9a9a9a', backgroundImage: `linear-gradient(135deg, ${COLOR_SWATCHES[color.name] || '#9a9a9a'} 0%, ${adjustColorBrightness(COLOR_SWATCHES[color.name] || '#9a9a9a', -15)} 100%)` }} />
+                    )}
+                    <div className="px-1 py-1 bg-background">
+                      <p className={cn("text-[10px] font-medium truncate text-center", formData.pictureFrameColor === color.name ? "text-primary" : "text-foreground")}>
+                        {color.name}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </Field>
+
+            <Field>
+              <FieldLabel className="flex items-center gap-2">
+                <Palette className="h-4 w-4 text-muted-foreground" />
+                Border 2 Color
+                <span className="text-[10px] text-muted-foreground font-normal">(inner board)</span>
+              </FieldLabel>
+              <div className="grid grid-cols-4 gap-2 pt-2 sm:grid-cols-6 lg:grid-cols-8">
+                {selectedCollection?.colors.map((color) => (
+                  <button
+                    key={color.name}
+                    type="button"
+                    onClick={() => updateFormData({ pictureFrameColor2: color.name })}
+                    className={cn(
+                      "rounded-lg border-2 overflow-hidden transition-all hover:shadow-md",
+                      formData.pictureFrameColor2 === color.name
+                        ? "border-primary ring-2 ring-primary/20 shadow-sm"
+                        : "border-border hover:border-muted-foreground/30"
+                    )}
+                  >
+                    {COLOR_IMAGES[color.name] ? (
+                      <div className="aspect-square w-full bg-cover bg-center" style={{ backgroundImage: `url(${COLOR_IMAGES[color.name]})` }} />
+                    ) : (
+                      <div className="aspect-square w-full" style={{ backgroundColor: COLOR_SWATCHES[color.name] || '#9a9a9a', backgroundImage: `linear-gradient(135deg, ${COLOR_SWATCHES[color.name] || '#9a9a9a'} 0%, ${adjustColorBrightness(COLOR_SWATCHES[color.name] || '#9a9a9a', -15)} 100%)` }} />
+                    )}
+                    <div className="px-1 py-1 bg-background">
+                      <p className={cn("text-[10px] font-medium truncate text-center", formData.pictureFrameColor2 === color.name ? "text-primary" : "text-foreground")}>
+                        {color.name}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </Field>
+          </>
+        )}
       </FieldGroup>
 
       {/* Selection Preview */}
@@ -375,11 +467,11 @@ export function SurfaceStep() {
         <p className="text-sm font-medium">Selected Surface Package</p>
         <p className="mt-1 text-sm text-muted-foreground">
           {selectedBrand?.name} {selectedCollection?.name} - {formData.deckingColor}
-          {formData.pictureFrameEnabled && (
-            <>
-              {" "}
-              | Picture Frame: {formData.pictureFrameColor}
-            </>
+          {formData.pictureFrameType === "single" && (
+            <> | Picture Frame: {formData.pictureFrameColor}</>
+          )}
+          {formData.pictureFrameType === "double" && (
+            <> | Border 1: {formData.pictureFrameColor} · Border 2: {formData.pictureFrameColor2}</>
           )}
         </p>
         <p className="mt-2 text-xs text-muted-foreground">

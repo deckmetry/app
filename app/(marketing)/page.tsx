@@ -20,7 +20,7 @@ const personas = [
       "Generate accurate BOMs, get professional drawings, and connect with contractors — all for free.",
     icon: Users,
     cta: "Start Estimating",
-    href: "/signup",
+    href: "/estimate",
     features: [
       "Free deck estimator wizard",
       "Professional floor plan drawings",
@@ -34,7 +34,7 @@ const personas = [
       "Quote materials, build professional proposals, and manage the full project workflow.",
     icon: Calculator,
     cta: "Start Free Trial",
-    href: "/signup",
+    href: "/signup?role=contractor",
     features: [
       "Instant BOM generation",
       "Professional PDF proposals",
@@ -48,7 +48,7 @@ const personas = [
       "Receive orders, generate invoices, and track deliveries — all in one platform.",
     icon: Truck,
     cta: "Join as Supplier",
-    href: "/signup",
+    href: "/signup?role=supplier",
     features: [
       "Order inbox & management",
       "Invoice generation",

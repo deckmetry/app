@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { BomItem } from "@/lib/types";
 import { useWizardStore, useEstimate } from "@/lib/stores/wizard-store";
 import { useEmbed } from "@/lib/contexts/embed-context";
-import { saveEstimate } from "@/lib/actions/estimates";
+import { saveEstimate, updateEstimate } from "@/lib/actions/estimates";
 import { createHomeownerCheckoutSession, type HomeownerProduct } from "@/lib/actions/purchases";
 import { EmbedEmailModal } from "@/components/deck-estimator/embed-email-modal";
 import { deckingBrands } from "@/lib/catalog";
@@ -109,7 +109,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string
 
 export function ReviewStep() {
   const formData = useWizardStore((s) => s.formData);
-  const updateFormData = useWizardStore((s) => s.updateFormData);
+  const editingEstimateId = useWizardStore((s) => s.editingEstimateId);
   const estimate = useEstimate();
   const embed = useEmbed();
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -345,22 +345,30 @@ export function ReviewStep() {
 
   const handleSaveEstimate = () => {
     startSaveTransition(async () => {
+      if (editingEstimateId) {
+        const result = await updateEstimate(editingEstimateId, formData);
+        if (result.success) {
+          toast.success("Estimate updated successfully");
+          router.push(`/contractor/estimates/${editingEstimateId}`);
+        } else {
+          toast.error("Failed to update estimate", { description: result.error });
+        }
+        return;
+      }
+
       const result = await saveEstimate(formData, existingProjectId);
       if (result.success) {
         setSavedEstimateId(result.estimateId ?? null);
         toast.success("Estimate saved to your dashboard", {
           description: "You can view it from your estimates page.",
         });
-        // Navigate to the project if we have one, otherwise estimates list
         if (result.projectId) {
           router.push(`/${roleBase}/projects/${result.projectId}`);
         } else {
           router.push(`/${roleBase}/estimates`);
         }
       } else {
-        toast.error("Failed to save estimate", {
-          description: result.error,
-        });
+        toast.error("Failed to save estimate", { description: result.error });
       }
     });
   };
