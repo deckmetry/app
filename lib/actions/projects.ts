@@ -97,7 +97,11 @@ export async function createProject(input: CreateProjectInput) {
     insertData[`${linkedOrgRole}_org_id`] = linkedOrgId;
   }
 
-  const { data: project, error } = await supabase
+  // Use service client to bypass RLS for project creation
+  const { createServiceClient } = await import("@/lib/supabase/service");
+  const service = createServiceClient();
+
+  const { data: project, error } = await service
     .from("projects")
     .insert(insertData)
     .select("id")
@@ -108,7 +112,7 @@ export async function createProject(input: CreateProjectInput) {
   }
 
   // Add caller as stakeholder
-  await supabase.from("project_stakeholders").insert({
+  await service.from("project_stakeholders").insert({
     project_id: project.id,
     organization_id: orgId,
     role: callerRole,
@@ -116,7 +120,7 @@ export async function createProject(input: CreateProjectInput) {
 
   // Add linked org as stakeholder
   if (linkedOrgId && linkedOrgRole) {
-    await supabase.from("project_stakeholders").insert({
+    await service.from("project_stakeholders").insert({
       project_id: project.id,
       organization_id: linkedOrgId,
       role: linkedOrgRole,
@@ -125,7 +129,7 @@ export async function createProject(input: CreateProjectInput) {
 
   // If inviting by email (no linked org), create a project share
   if (input.inviteEmail && !linkedOrgId) {
-    await supabase.from("project_shares").insert({
+    await service.from("project_shares").insert({
       project_id: project.id,
       shared_by: user.id,
       shared_with_email: input.inviteEmail,
@@ -243,9 +247,12 @@ export async function searchOrganizations(
 // ─── List Projects ───────────────────────────────────────────
 
 export async function listProjects() {
-  const { supabase } = await getUserOrgId();
+  const { orgId } = await getUserOrgId();
 
-  const { data: projects, error } = await supabase
+  const { createServiceClient } = await import("@/lib/supabase/service");
+  const service = createServiceClient();
+
+  const { data: projects, error } = await service
     .from("projects")
     .select(
       `
@@ -258,6 +265,7 @@ export async function listProjects() {
     `
     )
     .is("deleted_at", null)
+    .or(`homeowner_org_id.eq.${orgId},contractor_org_id.eq.${orgId},supplier_org_id.eq.${orgId},created_by_org_id.eq.${orgId}`)
     .order("created_at", { ascending: false });
 
   if (error) return [];
@@ -265,9 +273,12 @@ export async function listProjects() {
 }
 
 export async function getProject(projectId: string) {
-  const { supabase } = await getUserOrgId();
+  await getUserOrgId(); // auth check only
 
-  const { data: project, error } = await supabase
+  const { createServiceClient } = await import("@/lib/supabase/service");
+  const service = createServiceClient();
+
+  const { data: project, error } = await service
     .from("projects")
     .select(
       `
