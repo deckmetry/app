@@ -13,6 +13,7 @@ import {
 import { FileText, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 function QuoteStatusBadge({ status }: { status: string }) {
   const config: Record<string, { variant: "default" | "secondary" | "outline" | "destructive"; label: string }> = {
@@ -32,6 +33,7 @@ export default async function ContractorQuotesPage() {
 
   return (
     <div className="space-y-6">
+      <RealtimeRefresh table="quotes" />
       <PageHeader
         title="Quotes & Proposals"
         description="Manage your quotes, share proposals, and track approvals."

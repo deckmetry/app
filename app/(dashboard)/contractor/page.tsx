@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { MetricCard } from "@/components/metric-card";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 export default async function ContractorPipelinePage() {
   const supabase = await createClient();
@@ -59,6 +60,8 @@ export default async function ContractorPipelinePage() {
 
   return (
     <div className="space-y-8">
+      <RealtimeRefresh table="quotes" />
+      <RealtimeRefresh table="estimates" />
       <PageHeader
         title="Pipeline"
         description="Overview of your estimates and proposals"

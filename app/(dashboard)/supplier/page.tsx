@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { MetricCard } from "@/components/metric-card";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 export default async function SupplierDashboardPage() {
   const supabase = await createClient();
@@ -74,6 +75,9 @@ export default async function SupplierDashboardPage() {
 
   return (
     <div className="space-y-8">
+      <RealtimeRefresh table="orders" />
+      <RealtimeRefresh table="invoices" />
+      <RealtimeRefresh table="deliveries" />
       <PageHeader
         title="Supplier Dashboard"
         description="Manage incoming orders, invoices, and deliveries"

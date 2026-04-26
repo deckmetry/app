@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { inngest } from "@/lib/inngest/client";
 import { advanceProjectStatus } from "@/lib/actions/projects";
 import { createNotification } from "@/lib/actions/notifications";
 
@@ -164,7 +165,17 @@ export async function sendSupplierEstimate(supplierEstimateId: string) {
     });
   }
 
-  // TODO: Fire Inngest event for email
+  // Fire Inngest event for email notification
+  await inngest.send({
+    name: "supplier-estimate/sent",
+    data: {
+      supplierEstimateId: estimate.id,
+      estimateNumber: estimate.estimate_number,
+      title: estimate.title,
+      total: Number(estimate.total),
+      recipientOrgId: estimate.recipient_org_id,
+    },
+  });
 
   revalidatePath("/");
   return { success: true };

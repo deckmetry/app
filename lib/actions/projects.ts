@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { inngest } from "@/lib/inngest/client";
 
 // Project status order for forward-only progression
 const STATUS_ORDER = [
@@ -108,32 +109,49 @@ export async function createProject(input: CreateProjectInput) {
     .single();
 
   if (error || !project) {
+    console.error("[createProject] project insert failed:", error?.message);
     return { success: false, error: error?.message ?? "Failed to create project" };
   }
 
-  // Add caller as stakeholder
-  await service.from("project_stakeholders").insert({
+  // Add caller as stakeholder — critical: without this the project is invisible via RLS
+  const { error: stakeError } = await service.from("project_stakeholders").insert({
     project_id: project.id,
     organization_id: orgId,
     role: callerRole,
   });
 
-  // Add linked org as stakeholder
+  if (stakeError) {
+    console.error("[createProject] stakeholder insert failed:", stakeError.message);
+    await service.from("projects").delete().eq("id", project.id);
+    return { success: false, error: "Failed to set up project access. Please try again." };
+  }
+
+  // Add linked org as stakeholder (non-critical — project still works without this)
   if (linkedOrgId && linkedOrgRole) {
-    await service.from("project_stakeholders").insert({
+    const { error: linkError } = await service.from("project_stakeholders").insert({
       project_id: project.id,
       organization_id: linkedOrgId,
       role: linkedOrgRole,
     });
+    if (linkError) {
+      console.error("[createProject] linked stakeholder insert failed:", linkError.message);
+    }
+
+    // Auto-track as customer relationship
+    const { ensureCustomerRelationship } = await import("@/lib/actions/customers");
+    await ensureCustomerRelationship(orgId, linkedOrgId, linkedOrgRole);
   }
 
   // If inviting by email (no linked org), create a project share
   if (input.inviteEmail && !linkedOrgId) {
-    await service.from("project_shares").insert({
+    const { error: shareError } = await service.from("project_shares").insert({
       project_id: project.id,
       shared_by: user.id,
       shared_with_email: input.inviteEmail,
     });
+    if (shareError) {
+      console.error("[createProject] share insert failed:", shareError.message);
+    }
   }
 
   revalidatePath("/");
@@ -288,16 +306,17 @@ export async function getProject(projectId: string) {
         organizations:organization_id (id, name, type, logo_url)
       ),
       estimates (
-        id, project_name, status, deck_type, deck_width_ft, deck_projection_ft,
+        id, bom_number, project_name, status, deck_type, deck_width_ft, deck_projection_ft,
         total_area_sf, total_bom_items, decking_brand, decking_collection,
         decking_color, share_token, created_at
       ),
       quotes (
         id, quote_number, title, status, total, share_token,
-        sent_at, viewed_at, approved_at, created_at
+        estimate_id, sent_at, viewed_at, approved_at, created_at
       ),
       orders (
         id, order_number, title, status, total,
+        quote_id, supplier_estimate_id,
         submitted_at, confirmed_at, shipped_at, delivered_at, created_at
       ),
       supplier_estimates (
@@ -310,11 +329,11 @@ export async function getProject(projectId: string) {
       ),
       invoices (
         id, invoice_number, title, status, total,
-        sent_at, paid_at, created_at
+        order_id, sent_at, paid_at, created_at
       ),
       deliveries (
-        id, tracking_number, carrier, status,
-        shipped_at, delivered_at, created_at
+        id, delivery_number, tracking_number, carrier, status,
+        order_id, shipped_at, delivered_at, created_at
       )
     `
     )
@@ -432,7 +451,15 @@ export async function shareProject(
 
   if (error) return { error: error.message };
 
-  // TODO: Send share invitation email via Inngest
+  await inngest.send({
+    name: "project/shared",
+    data: {
+      projectId,
+      sharedByUserId: user.id,
+      sharedWithEmail: email,
+      token: share?.token,
+    },
+  });
 
   revalidatePath("/");
   return { success: true, token: share?.token };

@@ -7,6 +7,9 @@ import type {
   DerivedValues,
   JoistSpacing,
   DeckingCollection,
+  DeckingBrand,
+  JurisdictionProfile,
+  StockCatalog,
   StairSection,
 } from "./types";
 import {
@@ -18,6 +21,22 @@ import {
   wasteFactors,
   lightingDefaults,
 } from "./catalog";
+
+/**
+ * Optional overrides for catalog data. When provided (e.g. from DB via
+ * catalog-db.ts), these values take precedence over the hardcoded imports.
+ * Client-side wizard calls calculateEstimate(input) without overrides;
+ * Server Actions call calculateEstimate(input, dbCatalog).
+ */
+export interface CatalogOverrides {
+  deckingBrands?: DeckingBrand[];
+  stockCatalog?: StockCatalog;
+  joistSpanLookup?: Record<12 | 16, Record<string, number>>;
+  beamSpanLookup?: Record<number, Record<string, number>>;
+  jurisdictionProfile?: JurisdictionProfile;
+  wasteFactors?: { framing: number; decking: number; fascia: number; railing: number };
+  lightingDefaults?: { watts: { postCap: number; stair: number; accent: number } };
+}
 
 // Helper: Get next available stock length
 export function nextStockLength(
@@ -207,9 +226,10 @@ export function nextTransformerSize(
 // Helper: Get collection from catalog
 export function getCollection(
   brandId: string,
-  collectionId: string
+  collectionId: string,
+  brands: DeckingBrand[] = deckingBrands
 ): DeckingCollection | undefined {
-  const brand = deckingBrands.find((b) => b.id === brandId);
+  const brand = brands.find((b) => b.id === brandId);
   if (!brand) return undefined;
   return brand.collections.find((c) => c.id === collectionId);
 }
@@ -228,7 +248,19 @@ function generateBomId(): string {
 }
 
 // Main calculation function
-export function calculateEstimate(input: EstimateInput): EstimateOutput {
+export function calculateEstimate(
+  input: EstimateInput,
+  overrides?: CatalogOverrides
+): EstimateOutput {
+  // Resolve catalog values: overrides (from DB) take precedence over hardcoded
+  const _brands = overrides?.deckingBrands ?? deckingBrands;
+  const _stockCatalog = overrides?.stockCatalog ?? stockCatalog;
+  const _joistSpanLookup = overrides?.joistSpanLookup ?? joistSpanLookup;
+  const _beamSpanLookup = overrides?.beamSpanLookup ?? beamSpanLookup;
+  const _jurisdictionProfile = overrides?.jurisdictionProfile ?? jurisdictionProfile;
+  const _wasteFactors = overrides?.wasteFactors ?? wasteFactors;
+  const _lightingDefaults = overrides?.lightingDefaults ?? lightingDefaults;
+
   const assumptions: string[] = [];
   const warnings: string[] = [];
   const bom: BomItem[] = [];
@@ -237,8 +269,8 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
   assumptions.push("Single-level rectangular deck");
   assumptions.push("Conservative PT framing (No. 2 lumber, wet service)");
   assumptions.push("40 psf live load, 10 psf dead load");
-  assumptions.push(`Soil bearing: ${jurisdictionProfile.soilBearingPsf} psf`);
-  assumptions.push(`Frost depth: ${jurisdictionProfile.frostDepthIn}"`);
+  assumptions.push(`Soil bearing: ${_jurisdictionProfile.soilBearingPsf} psf`);
+  assumptions.push(`Frost depth: ${_jurisdictionProfile.frostDepthIn}"`);
   assumptions.push("Standard 16\" x 36\" concrete footings");
 
   // Validate and generate warnings
@@ -256,7 +288,7 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
   }
 
   // Get collection info
-  const collection = getCollection(input.deckingBrand, input.deckingCollection);
+  const collection = getCollection(input.deckingBrand, input.deckingCollection, _brands);
   const boardFaceWidthIn = collection?.boardFaceWidthIn || 5.5;
   const deckingThicknessIn = collection?.boardThicknessIn || 0.94;
 
@@ -329,7 +361,7 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
   const tubeLengthFt = sonotubeDepthIn / 12;
   const volumePerFootingCf = Math.PI * tubeRadiusFt * tubeRadiusFt * tubeLengthFt;
   const totalConcreteCf = volumePerFootingCf * sonotubeQty;
-  const concreteBags80 = Math.ceil(totalConcreteCf / jurisdictionProfile.bagYieldCf80);
+  const concreteBags80 = Math.ceil(totalConcreteCf / _jurisdictionProfile.bagYieldCf80);
 
   // === DECKING CALCULATIONS ===
   // Boards run PARALLEL to the house (along deck width direction)
@@ -394,13 +426,13 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
     // Each zone uses boards of the selected length
     // Each row needs (deckingZones) boards of (selectedBoardLengthFt)
     const totalForAllRows = deckingZones * boardRows;
-    const withWaste = Math.ceil(totalForAllRows * (1 + wasteFactors.decking));
+    const withWaste = Math.ceil(totalForAllRows * (1 + _wasteFactors.decking));
     groovedBoardsByLength[selectedBoardLengthFt] = withWaste;
   } else {
     const rowOptimization = optimizeDeckRow(input.deckWidthFt, groovedLengths);
     for (const [length, count] of Object.entries(rowOptimization.lengths)) {
       const totalForAllRows = count * boardRows;
-      const withWaste = Math.ceil(totalForAllRows * (1 + wasteFactors.decking));
+      const withWaste = Math.ceil(totalForAllRows * (1 + _wasteFactors.decking));
       groovedBoardsByLength[Number(length)] = withWaste;
     }
   }
@@ -451,7 +483,7 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
 
   // 1x12 count: deck perimeter + stair diagonals
   const total1x12Lf = deckPerimeterLf + stairDiagonalLf;
-  const fascia1x12Count = Math.ceil((total1x12Lf * (1 + wasteFactors.fascia)) / 12);
+  const fascia1x12Count = Math.ceil((total1x12Lf * (1 + _wasteFactors.fascia)) / 12);
 
   // 1x8 count: step risers (based on stair width and step count)
   let total1x8Lf = 0;
@@ -459,7 +491,7 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
     // Each riser needs coverage across the stair width
     total1x8Lf += stair.widthFt * stair.stepCount;
   }
-  const fascia1x8Count = Math.ceil((total1x8Lf * (1 + wasteFactors.fascia)) / 12);
+  const fascia1x8Count = Math.ceil((total1x8Lf * (1 + _wasteFactors.fascia)) / 12);
 
   // === STAIR CALCULATIONS ===
 
@@ -612,9 +644,9 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
     : 0;
 
   const totalWatts =
-    postCapLightQty * lightingDefaults.watts.postCap +
-    stairLightQty * lightingDefaults.watts.stair +
-    accentLightQty * lightingDefaults.watts.accent;
+    postCapLightQty * _lightingDefaults.watts.postCap +
+    stairLightQty * _lightingDefaults.watts.stair +
+    accentLightQty * _lightingDefaults.watts.accent;
 
   const recommendedTransformerWatts =
     totalWatts > 0 ? nextTransformerSize(totalWatts * 1.2) : 0;
@@ -683,7 +715,7 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
     category: "framing",
     description: "Joists",
     size: `${joistSize} x ${joistStockLengthFt}'`,
-    quantity: Math.ceil(joistCount * (1 + wasteFactors.framing)),
+    quantity: Math.ceil(joistCount * (1 + _wasteFactors.framing)),
     unit: "ea",
     editable: true,
   });
@@ -745,7 +777,7 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
       category: "framing",
       description: "Blocking",
       size: `2x${joistDepthIn}`,
-      quantity: Math.ceil(blockingPieces * (1 + wasteFactors.framing)),
+      quantity: Math.ceil(blockingPieces * (1 + _wasteFactors.framing)),
       unit: "ea",
       editable: true,
     });
@@ -799,7 +831,7 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
       category: "decking",
       description: `${input.pictureFrameColor} Solid Board (Picture Frame)`,
       size: `${solidLengths[0]}'`,
-      quantity: Math.ceil(pictureFrameBoards * (1 + wasteFactors.decking)),
+      quantity: Math.ceil(pictureFrameBoards * (1 + _wasteFactors.decking)),
       unit: "ea",
       editable: true,
     });
@@ -814,7 +846,7 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
       category: "decking",
       description: `${input.pictureFrameColor || input.deckingColor} Solid Board (Breaker)`,
       size: `${solidLengths[0]}'`,
-      quantity: Math.ceil(breakerBoardsNeeded * (1 + wasteFactors.decking)),
+      quantity: Math.ceil(breakerBoardsNeeded * (1 + _wasteFactors.decking)),
       unit: "ea",
       notes: `${breakerBoardCount} breaker line(s) for ${input.deckWidthFt}' deck width`,
       editable: true,
@@ -833,7 +865,7 @@ export function calculateEstimate(input: EstimateInput): EstimateOutput {
       category: "decking",
       description: `${input.deckingColor} Solid Deck Board (Stair Treads)`,
       size: `${solidLengths[0]}'`,
-      quantity: Math.ceil(stairTreadBoards * (1 + wasteFactors.decking)),
+      quantity: Math.ceil(stairTreadBoards * (1 + _wasteFactors.decking)),
       unit: "ea",
       editable: true,
     });

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, FileText } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
@@ -39,6 +40,7 @@ export default async function SupplierInvoicesPage() {
 
   return (
     <div className="space-y-6">
+      <RealtimeRefresh table="invoices" />
       <PageHeader
         title="Invoices"
         description="Manage invoices for orders"

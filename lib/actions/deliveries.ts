@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { inngest } from "@/lib/inngest/client";
 
 interface DeliveryResult {
   success: boolean;
@@ -38,10 +39,18 @@ export async function createDelivery(
     return { success: false, error: "No organization found" };
   }
 
+  // Fetch project_id from the order (DB trigger is a safety net)
+  const { data: order } = await supabase
+    .from("orders")
+    .select("project_id")
+    .eq("id", input.order_id)
+    .single();
+
   const { data: delivery, error } = await supabase
     .from("deliveries")
     .insert({
       order_id: input.order_id,
+      project_id: order?.project_id ?? null,
       organization_id: profile.default_organization_id,
       status: "pending",
       carrier: input.carrier ?? null,
@@ -111,6 +120,26 @@ export async function updateDeliveryStatus(
         projectId,
         status === "in_transit" ? "materials_shipped" : "materials_delivered"
       );
+    }
+
+    // Fire delivery/confirmed event for email notification
+    if (status === "delivered" && delivery?.order_id) {
+      const { data: deliveryDetails } = await supabase
+        .from("deliveries")
+        .select("delivery_number, carrier, tracking_number")
+        .eq("id", deliveryId)
+        .single();
+
+      await inngest.send({
+        name: "delivery/confirmed",
+        data: {
+          deliveryId,
+          deliveryNumber: deliveryDetails?.delivery_number,
+          orderId: delivery.order_id,
+          carrierName: deliveryDetails?.carrier,
+          trackingNumber: deliveryDetails?.tracking_number,
+        },
+      });
     }
   }
 

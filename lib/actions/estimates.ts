@@ -6,6 +6,7 @@ import type { EstimateInput, BomItem } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { checkEstimateLimit } from "@/lib/subscription";
 import { logActivity } from "@/lib/actions/activity";
+import { getFullCatalog } from "@/lib/catalog-db";
 
 interface SaveEstimateResult {
   success: boolean;
@@ -66,18 +67,75 @@ export async function saveEstimate(
     }
   }
 
+  // Fetch catalog data from DB (authoritative source) with hardcoded fallback
+  const catalog = await getFullCatalog();
+
   // Run the BOM engine server-side (authoritative calculation)
-  const estimate = calculateEstimate(formData);
+  const estimate = calculateEstimate(formData, catalog);
 
   // Generate share token
   const shareToken = crypto.randomUUID().replace(/-/g, "");
 
-  // Insert estimate
+  // Resolve project — create FIRST so the estimate always has a project_id
+  let projectId: string;
+
+  if (existingProjectId) {
+    projectId = existingProjectId;
+  } else {
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("type")
+      .eq("id", orgId)
+      .single();
+
+    const orgType = (org?.type as "homeowner" | "contractor" | "supplier") ?? "homeowner";
+
+    const { data: newProject, error: projectError } = await supabase
+      .from("projects")
+      .insert({
+        created_by_org_id: orgId,
+        created_by: user.id,
+        [`${orgType}_org_id`]: orgId,
+        name: formData.projectName || "Untitled Project",
+        address: formData.projectAddress || null,
+      })
+      .select("id")
+      .single();
+
+    if (projectError || !newProject) {
+      return {
+        success: false,
+        error: projectError?.message ?? "Failed to create project",
+      };
+    }
+
+    projectId = newProject.id;
+
+    // Use service client — RLS on project_stakeholders sub-selects projects,
+    // which may not be visible yet through the user's RLS context.
+    const { createServiceClient } = await import("@/lib/supabase/service");
+    const service = createServiceClient();
+
+    const { error: stakeError } = await service.from("project_stakeholders").insert({
+      project_id: projectId,
+      organization_id: orgId,
+      role: orgType,
+    });
+
+    if (stakeError) {
+      console.error("[saveEstimate] stakeholder insert failed:", stakeError.message);
+      await service.from("projects").delete().eq("id", projectId);
+      return { success: false, error: "Failed to set up project. Please try again." };
+    }
+  }
+
+  // Insert estimate with project_id set from the start
   const { data: savedEstimate, error: estimateError } = await supabase
     .from("estimates")
     .insert({
       organization_id: orgId,
       created_by: user.id,
+      project_id: projectId,
       status: "completed" as const,
 
       // Job info
@@ -161,7 +219,6 @@ export async function saveEstimate(
       .insert(lineItems);
 
     if (lineItemsError) {
-      // Estimate was saved but line items failed — log but don't fail
       console.error("Failed to save line items:", lineItemsError);
     }
   }
@@ -185,53 +242,6 @@ export async function saveEstimate(
     }
   }
 
-  // Link to existing project or auto-create one
-  let project: { id: string } | null = null;
-
-  if (existingProjectId) {
-    // Attach estimate to an existing project
-    await supabase
-      .from("estimates")
-      .update({ project_id: existingProjectId })
-      .eq("id", estimateId);
-    project = { id: existingProjectId };
-  } else {
-    // Auto-create a project for this estimate
-    const { data: org } = await supabase
-      .from("organizations")
-      .select("type")
-      .eq("id", orgId)
-      .single();
-
-    const orgType = (org?.type as "homeowner" | "contractor" | "supplier") ?? "homeowner";
-
-    const { data: newProject } = await supabase
-      .from("projects")
-      .insert({
-        created_by_org_id: orgId,
-        created_by: user.id,
-        [`${orgType}_org_id`]: orgId,
-        name: formData.projectName || "Untitled Project",
-        address: formData.projectAddress || null,
-      })
-      .select("id")
-      .single();
-
-    if (newProject) {
-      await supabase
-        .from("estimates")
-        .update({ project_id: newProject.id })
-        .eq("id", estimateId);
-
-      await supabase.from("project_stakeholders").insert({
-        project_id: newProject.id,
-        organization_id: orgId,
-        role: orgType,
-      });
-    }
-    project = newProject;
-  }
-
   revalidatePath("/dashboard");
 
   await logActivity({
@@ -245,11 +255,11 @@ export async function saveEstimate(
       deckType: formData.deckType,
       areaSf: estimate.derived.deckAreaSf,
       bomItems: estimate.bom.length,
-      projectId: project?.id,
+      projectId,
     },
   });
 
-  return { success: true, estimateId, projectId: project?.id };
+  return { success: true, estimateId, projectId };
 }
 
 export async function updateEstimate(
@@ -373,7 +383,7 @@ export async function listEstimates() {
 
   const { data: estimates, error } = await supabase
     .from("estimates")
-    .select("id, project_name, status, deck_type, deck_width_ft, deck_projection_ft, total_area_sf, total_bom_items, created_at, updated_at")
+    .select("id, bom_number, project_name, status, deck_type, deck_width_ft, deck_projection_ft, total_area_sf, total_bom_items, created_at, updated_at")
     .eq("organization_id", profile.default_organization_id)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });

@@ -14,7 +14,12 @@ import {
   Truck,
   ClipboardList,
   FolderOpen,
+  ArrowUpRight,
+  ArrowDownLeft,
+  List,
+  GitBranch,
 } from "lucide-react";
+import { DocumentFlowTree } from "./document-flow-tree";
 import type { Project } from "./project-detail-shell";
 
 // ─── Document kinds ──────────────────────────────────────────
@@ -28,6 +33,8 @@ type DocumentKind =
   | "invoice"
   | "delivery";
 
+type DocDirection = "sell" | "buy" | null;
+
 interface NormalizedDocument {
   id: string;
   kind: DocumentKind;
@@ -37,6 +44,7 @@ interface NormalizedDocument {
   amount: number | null;
   date: string;
   linkHref: string | null;
+  direction: DocDirection;
 }
 
 // ─── Kind config ─────────────────────────────────────────────
@@ -117,12 +125,13 @@ function normalizeProjectDocuments(project: Project, role: Role): NormalizedDocu
     docs.push({
       id: est.id,
       kind: "bom",
-      number: "BOM",
+      number: est.bom_number,
       title: est.project_name || "Untitled BOM",
       status: est.status,
       amount: null,
       date: est.created_at,
       linkHref: `/${role}/estimates/${est.id}`,
+      direction: null,
     });
   }
 
@@ -135,7 +144,8 @@ function normalizeProjectDocuments(project: Project, role: Role): NormalizedDocu
       status: se.status,
       amount: se.total,
       date: se.created_at,
-      linkHref: null, // TODO: supplier estimate detail page
+      linkHref: null,
+      direction: role === "supplier" ? "sell" : "buy",
     });
   }
 
@@ -149,6 +159,7 @@ function normalizeProjectDocuments(project: Project, role: Role): NormalizedDocu
       amount: q.total,
       date: q.created_at,
       linkHref: role === "contractor" ? `/${role}/quotes/${q.id}` : null,
+      direction: role === "contractor" ? "sell" : "buy",
     });
   }
 
@@ -162,6 +173,7 @@ function normalizeProjectDocuments(project: Project, role: Role): NormalizedDocu
       amount: a.approved_total,
       date: a.approved_at ?? a.created_at,
       linkHref: null,
+      direction: null,
     });
   }
 
@@ -175,6 +187,7 @@ function normalizeProjectDocuments(project: Project, role: Role): NormalizedDocu
       amount: o.total,
       date: o.created_at,
       linkHref: `/${role}/orders/${o.id}`,
+      direction: role === "contractor" ? "buy" : "sell",
     });
   }
 
@@ -188,6 +201,7 @@ function normalizeProjectDocuments(project: Project, role: Role): NormalizedDocu
       amount: inv.total,
       date: inv.created_at,
       linkHref: role === "supplier" ? `/${role}/invoices/${inv.id}` : null,
+      direction: role === "supplier" ? "sell" : "buy",
     });
   }
 
@@ -195,12 +209,13 @@ function normalizeProjectDocuments(project: Project, role: Role): NormalizedDocu
     docs.push({
       id: d.id,
       kind: "delivery",
-      number: d.tracking_number ?? "Delivery",
+      number: d.delivery_number,
       title: d.carrier ? `${d.carrier} shipment` : "Shipment",
       status: d.status,
       amount: null,
       date: d.created_at,
       linkHref: role === "supplier" ? `/${role}/deliveries/${d.id}` : null,
+      direction: null,
     });
   }
 
@@ -230,6 +245,7 @@ interface DocumentsTabProps {
 export function DocumentsTab({ project, role }: DocumentsTabProps) {
   const allDocs = normalizeProjectDocuments(project, role);
   const [filter, setFilter] = useState<DocumentKind | "all">("all");
+  const [view, setView] = useState<"list" | "flow">("list");
 
   const filteredDocs = filter === "all" ? allDocs : allDocs.filter((d) => d.kind === filter);
 
@@ -255,40 +271,77 @@ export function DocumentsTab({ project, role }: DocumentsTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Filter bar */}
-      {activeKinds.length > 1 && (
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setFilter("all")}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-              filter === "all"
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:text-foreground"
-            )}
-          >
-            All
-            <span className="font-mono">{allDocs.length}</span>
-          </button>
-          {activeKinds.map((kind) => (
+      {/* Toolbar: view toggle + filter bar */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Filter bar (list view only) */}
+        {view === "list" && activeKinds.length > 1 ? (
+          <div className="flex flex-wrap gap-1.5">
             <button
-              key={kind}
-              onClick={() => setFilter(kind)}
+              onClick={() => setFilter("all")}
               className={cn(
                 "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-                filter === kind
+                filter === "all"
                   ? "border-primary bg-primary/10 text-primary"
                   : "border-border text-muted-foreground hover:text-foreground"
               )}
             >
-              {KIND_LABELS[kind][role]}
-              <span className="font-mono">{kindCounts[kind]}</span>
+              All
+              <span className="font-mono">{allDocs.length}</span>
             </button>
-          ))}
-        </div>
-      )}
+            {activeKinds.map((kind) => (
+              <button
+                key={kind}
+                onClick={() => setFilter(kind)}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
+                  filter === kind
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {KIND_LABELS[kind][role]}
+                <span className="font-mono">{kindCounts[kind]}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div />
+        )}
 
-      {/* Document list */}
+        {/* View toggle */}
+        <div className="flex shrink-0 rounded-md border">
+          <button
+            onClick={() => setView("list")}
+            className={cn(
+              "inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors rounded-l-md",
+              view === "list"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <List className="h-3.5 w-3.5" />
+            List
+          </button>
+          <button
+            onClick={() => setView("flow")}
+            className={cn(
+              "inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium transition-colors rounded-r-md border-l",
+              view === "flow"
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <GitBranch className="h-3.5 w-3.5" />
+            Flow
+          </button>
+        </div>
+      </div>
+
+      {/* Flow tree view */}
+      {view === "flow" && <DocumentFlowTree project={project} />}
+
+      {/* Document list view */}
+      {view === "list" && (
       <div className="grid gap-2">
         {filteredDocs.map((doc) => {
           const Icon = KIND_ICONS[doc.kind];
@@ -312,6 +365,18 @@ export function DocumentsTab({ project, role }: DocumentsTabProps) {
                       <Badge variant="secondary" className={cn("text-[10px]", statusColor)}>
                         {doc.status.replace(/_/g, " ")}
                       </Badge>
+                      {doc.direction === "sell" && (
+                        <Badge variant="outline" className="text-[10px] shrink-0 border-emerald-300 text-emerald-700 dark:border-emerald-700 dark:text-emerald-400">
+                          <ArrowUpRight className="mr-0.5 h-3 w-3" />
+                          Sell
+                        </Badge>
+                      )}
+                      {doc.direction === "buy" && (
+                        <Badge variant="outline" className="text-[10px] shrink-0 border-orange-300 text-orange-700 dark:border-orange-700 dark:text-orange-400">
+                          <ArrowDownLeft className="mr-0.5 h-3 w-3" />
+                          Buy
+                        </Badge>
+                      )}
                     </div>
                     <p className="mt-0.5 text-sm font-medium truncate">{doc.title}</p>
                   </div>
@@ -337,6 +402,7 @@ export function DocumentsTab({ project, role }: DocumentsTabProps) {
           return <div key={`${doc.kind}-${doc.id}`}>{content}</div>;
         })}
       </div>
+      )}
     </div>
   );
 }

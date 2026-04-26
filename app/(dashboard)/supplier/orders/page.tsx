@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, Package } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 const statusColors: Record<string, string> = {
   submitted: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
@@ -56,6 +57,7 @@ export default async function SupplierOrdersPage() {
 
   return (
     <div className="space-y-6">
+      <RealtimeRefresh table="orders" />
       <PageHeader
         title="Order Inbox"
         description="Incoming purchase orders from contractors"

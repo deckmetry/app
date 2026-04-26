@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, FileSpreadsheet } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 export default async function HomeownerEstimatesPage() {
   const supabase = await createClient();
@@ -43,6 +44,7 @@ export default async function HomeownerEstimatesPage() {
 
   return (
     <div className="space-y-6">
+      <RealtimeRefresh table="estimates" />
       <PageHeader title="My Estimates" description="Your saved deck estimates and BOMs">
         <Link href="/estimate">
           <Button size="sm" className="gap-2">

@@ -8,11 +8,13 @@ import {
   Package,
   CreditCard,
   Users,
+  UserCircle,
 } from "lucide-react";
 
 const navItems = [
   { label: "Pipeline", href: "/contractor", icon: LayoutDashboard },
   { label: "Projects", href: "/contractor/projects", icon: FolderKanban },
+  { label: "Customers", href: "/contractor/customers", icon: UserCircle },
   { label: "Quotes", href: "/contractor/quotes", icon: FileText },
   { label: "Orders", href: "/contractor/orders", icon: Package },
   { label: "Billing", href: "/contractor/billing", icon: CreditCard },

@@ -121,6 +121,84 @@ export async function createOrderFromQuote(
   return { success: true, orderId: order.id };
 }
 
+export async function createOrderFromSupplierEstimate(
+  supplierEstimateId: string
+): Promise<OrderResult> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("default_organization_id")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.default_organization_id) {
+    return { success: false, error: "No organization found" };
+  }
+
+  // Fetch the accepted supplier estimate with line items
+  const { data: se, error: seError } = await supabase
+    .from("supplier_estimates")
+    .select(`
+      *,
+      supplier_estimate_line_items (*)
+    `)
+    .eq("id", supplierEstimateId)
+    .eq("status", "accepted")
+    .is("deleted_at", null)
+    .single();
+
+  if (seError || !se) {
+    return { success: false, error: "Accepted supplier estimate not found" };
+  }
+
+  // Create the order linked to the supplier estimate
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .insert({
+      organization_id: profile.default_organization_id,
+      supplier_org_id: se.organization_id,
+      supplier_estimate_id: supplierEstimateId,
+      project_id: se.project_id ?? null,
+      created_by: user.id,
+      status: "draft",
+      title: se.title || "Purchase Order",
+      tax_rate: Number(se.tax_rate),
+    })
+    .select("id, order_number")
+    .single();
+
+  if (orderError || !order) {
+    return { success: false, error: orderError?.message ?? "Failed to create order" };
+  }
+
+  // Copy line items from supplier estimate to order
+  const seItems = se.supplier_estimate_line_items ?? [];
+  if (seItems.length > 0) {
+    const lineItems = seItems.map((item: any, idx: number) => ({
+      order_id: order.id,
+      category: item.category,
+      description: item.description,
+      size: item.size,
+      quantity: Number(item.quantity),
+      unit: item.unit,
+      unit_price: Number(item.unit_price),
+      notes: item.notes,
+      sort_order: item.sort_order ?? idx,
+    }));
+
+    await supabase.from("order_line_items").insert(lineItems);
+  }
+
+  revalidatePath("/contractor/orders");
+  return { success: true, orderId: order.id };
+}
+
 export async function createOrder(input: CreateOrderInput): Promise<OrderResult> {
   try {
     await requirePaidPlan("Creating orders requires a paid plan.");

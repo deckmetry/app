@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { inngest } from "@/lib/inngest/client";
 
 type OrgRole = "owner" | "admin" | "member" | "viewer";
 
@@ -191,16 +192,29 @@ export async function inviteMember(email: string, role: OrgRole = "member") {
     return { error: "An invitation is already pending for this email" };
   }
 
-  const { error } = await supabase.from("invitations").insert({
-    organization_id: orgId,
-    invited_by: user.id,
-    email,
-    role,
-  });
+  const { data: invitation, error } = await supabase
+    .from("invitations")
+    .insert({
+      organization_id: orgId,
+      invited_by: user.id,
+      email,
+      role,
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
 
-  // TODO: Send invitation email via Inngest/Resend
+  // Fire Inngest event for invitation email
+  await inngest.send({
+    name: "team/invitation-sent",
+    data: {
+      invitationId: invitation?.id,
+      email,
+      orgId,
+      role,
+    },
+  });
 
   revalidatePath("/");
   return { success: true };

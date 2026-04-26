@@ -70,6 +70,7 @@ export function CreateProjectDialog({ role }: CreateProjectDialogProps) {
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const showOrgLinking = role !== "homeowner";
 
@@ -103,43 +104,48 @@ export function CreateProjectDialog({ role }: CreateProjectDialogProps) {
     setNewCustomerName("");
     setNewCustomerEmail("");
     setNewCustomerPhone("");
+    setError(null);
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
 
+    setError(null);
     startTransition(async () => {
-      try {
-        const result = await createProject({
-          name: name.trim(),
-          address: address.trim() || undefined,
-          description: description.trim() || undefined,
-          linkedOrgId: selectedOrg?.id,
-          linkedOrgRole: selectedOrg
-            ? (selectedOrg.type as "homeowner" | "contractor" | "supplier")
-            : undefined,
-          inviteEmail: linkMode === "invite" && !selectedOrg && inviteEmail.trim()
-            ? inviteEmail.trim()
-            : undefined,
-          newCustomer: linkMode === "create" && newCustomerName.trim()
-            ? {
-                name: newCustomerName.trim(),
-                email: newCustomerEmail.trim() || undefined,
-                phone: newCustomerPhone.trim() || undefined,
-              }
-            : undefined,
-        });
+      const result = await createProject({
+        name: name.trim(),
+        address: address.trim() || undefined,
+        description: description.trim() || undefined,
+        linkedOrgId: selectedOrg?.id,
+        linkedOrgRole: selectedOrg
+          ? (selectedOrg.type as "homeowner" | "contractor" | "supplier")
+          : undefined,
+        inviteEmail: linkMode === "invite" && !selectedOrg && inviteEmail.trim()
+          ? inviteEmail.trim()
+          : undefined,
+        newCustomer: linkMode === "create" && newCustomerName.trim()
+          ? {
+              name: newCustomerName.trim(),
+              email: newCustomerEmail.trim() || undefined,
+              phone: newCustomerPhone.trim() || undefined,
+            }
+          : undefined,
+      });
 
-        if (result.success && result.projectId) {
-          setOpen(false);
-          resetForm();
-          router.push(`/${role}/projects/${result.projectId}`);
-        } else {
-          toast.error(result.error ?? "Failed to create project");
-        }
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to create project");
+      if (result.success && result.projectId) {
+        setOpen(false);
+        resetForm();
+        const params = new URLSearchParams({
+          projectId: result.projectId,
+          startStep: "geometry",
+          role,
+        });
+        if (name.trim()) params.set("projectName", name.trim());
+        if (address.trim()) params.set("projectAddress", address.trim());
+        router.push(`/estimate?${params.toString()}`);
+      } else {
+        setError(result.error ?? "Something went wrong. Please try again.");
       }
     });
   }
@@ -357,6 +363,10 @@ export function CreateProjectDialog({ role }: CreateProjectDialogProps) {
               </>
             )}
           </div>
+
+          {error && (
+            <p className="mt-4 text-sm text-destructive">{error}</p>
+          )}
 
           <DialogFooter className="mt-6">
             <Button

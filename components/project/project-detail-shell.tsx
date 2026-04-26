@@ -43,6 +43,7 @@ interface Stakeholder {
 
 interface Estimate {
   id: string;
+  bom_number: string;
   project_name: string;
   status: string;
   deck_type: string;
@@ -64,6 +65,7 @@ interface Quote {
   status: string;
   total: number | null;
   share_token: string | null;
+  estimate_id: string | null;
   sent_at: string | null;
   viewed_at: string | null;
   approved_at: string | null;
@@ -76,6 +78,8 @@ interface Order {
   title: string;
   status: string;
   total: number | null;
+  quote_id: string | null;
+  supplier_estimate_id: string | null;
   submitted_at: string | null;
   confirmed_at: string | null;
   shipped_at: string | null;
@@ -112,6 +116,7 @@ interface Invoice {
   title: string;
   status: string;
   total: number | null;
+  order_id: string | null;
   sent_at: string | null;
   paid_at: string | null;
   created_at: string;
@@ -119,9 +124,11 @@ interface Invoice {
 
 interface Delivery {
   id: string;
+  delivery_number: string;
   tracking_number: string | null;
   carrier: string | null;
   status: string;
+  order_id: string | null;
   shipped_at: string | null;
   delivered_at: string | null;
   created_at: string;

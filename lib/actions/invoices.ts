@@ -43,13 +43,14 @@ export async function createInvoiceFromOrder(
     return { success: false, error: "Confirmed order not found" };
   }
 
-  // Create invoice
+  // Create invoice (project_id inherited from order; DB trigger is a safety net)
   const { data: invoice, error: invoiceError } = await supabase
     .from("invoices")
     .insert({
       organization_id: profile.default_organization_id,
       contractor_org_id: order.organization_id,
       order_id: orderId,
+      project_id: order.project_id ?? null,
       created_by: user.id,
       status: "draft",
       title: `Invoice for ${order.title}`,

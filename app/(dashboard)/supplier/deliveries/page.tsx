@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 const statusColors: Record<string, string> = {
   pending: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
@@ -27,6 +28,7 @@ export default async function SupplierDeliveriesPage() {
 
   return (
     <div className="space-y-6">
+      <RealtimeRefresh table="deliveries" />
       <PageHeader
         title="Deliveries"
         description="Track shipments and proof of delivery"
