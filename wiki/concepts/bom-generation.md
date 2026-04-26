@@ -1,7 +1,7 @@
 ---
 type: concept
-sources: [deckmetry-bom-engine-source.md]
-last_updated: 2026-04-10
+sources: [deckmetry-bom-engine-source.md, deckmetry-context-pack.md, deckmetry-wehrungs-mvp-build-spec.md]
+last_updated: 2026-04-26
 ---
 
 # BOM Generation (Bill of Materials)
@@ -41,6 +41,20 @@ In Deckmetry, the BOM is structured as an array of `BomItem` objects, each with:
 | Railing | Level/stair sections (6'/8'), level/stair posts, hardware packs | [Guard requirements](guard-railing-requirements.md), section optimization |
 | Add-ons | Lattice/horizontal skirt, post cap/stair/accent lights, transformer | Perimeter-based for skirts, count-based for lights |
 
+### Railing Section Logic
+
+The context pack specifies a preferred railing kit layout algorithm:
+- Use **6 ft and 8 ft level rail kits** in combination to cover each open railing run
+- Prefer **equal/balanced visual layout** — avoid tiny leftover sections at the end of a run
+- Subtract stair openings from railing run length before calculating kits
+- Allow contractor/admin manual adjustment after auto-calculation
+
+Example (20 ft wide deck, railing on front + two sides, no stairs, wall at back):
+- Front: three 6 ft sections (18 ft covered, or mix adjusted to span)
+- Each side: two 8 ft sections
+
+This logic applies to brands like [RDI Finyl Line](../entities/rdi-finyl-line.md) where kits are sold in 6 ft and 8 ft lengths.
+
 ## Deckmetry Implications
 
 - BOM items are stored as `estimate_line_items` in the database (normalized, not JSON blob)
@@ -62,3 +76,5 @@ In Deckmetry, the BOM is structured as an array of `BomItem` objects, each with:
 ## Source References
 
 - [Deckmetry BOM Engine Source](../sources/deckmetry-bom-engine-source.md)
+- [Deckmetry Context Pack](../sources/deckmetry-context-pack.md)
+- [Deckmetry Wehrung's MVP Build Spec](../sources/deckmetry-wehrungs-mvp-build-spec.md)

@@ -1,7 +1,7 @@
 ---
 type: concept
-sources: [deckmetry-bom-engine-source.md]
-last_updated: 2026-04-10
+sources: [deckmetry-bom-engine-source.md, deckmetry-context-pack.md]
+last_updated: 2026-04-26
 ---
 
 # Waste Factors in Construction Estimation
@@ -60,3 +60,4 @@ These values align with standard construction estimation guides:
 ## Source References
 
 - [Deckmetry BOM Engine Source](../sources/deckmetry-bom-engine-source.md)
+- [Deckmetry Context Pack](../sources/deckmetry-context-pack.md) — confirms decking 5–10%, fascia 5–10%, framing 5%; railing calculated by kit count not percentage

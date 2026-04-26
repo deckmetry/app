@@ -1,0 +1,641 @@
+{
+  "project": {
+    "name": "Deckmetry",
+    "mvp_name": "Deckmetry Wehrungs MVP",
+    "launch_strategy": "Single-supplier pilot for Wehrung's only",
+    "objective": "Launch Deckmetry as a focused validation MVP for Wehrung's. The goal is to validate the product with one supplier, real salespeople, real contractors, real homeowners, and real material orders before expanding to a multi-supplier model.",
+    "strategic_positioning": {
+      "do_not_overbuild": true,
+      "multi_supplier_marketplace": "Future phase, not MVP",
+      "current_supplier": "Wehrung's",
+      "database_should_include_supplier_id": true,
+      "product_experience": "Should feel like a custom Wehrung's portal"
+    }
+  },
+  "roles": {
+    "supplier_user": {
+      "description": "A Wehrung's supplier admin or salesperson.",
+      "capabilities": [
+        "Add contractors",
+        "Create contractor login credentials",
+        "Assign contractor-specific catalog discounts",
+        "View contractor projects and order statuses",
+        "Add homeowners manually during in-store sales",
+        "Review homeowner leads generated online",
+        "Redirect homeowner leads to contractors",
+        "Manage product catalog items and product groups",
+        "View sales and product popularity reports"
+      ]
+    },
+    "contractor": {
+      "description": "A contractor invited by Wehrung's.",
+      "capabilities": [
+        "Log in with credentials created by the supplier",
+        "Change password after first login",
+        "Create new deck projects using the deck calculator",
+        "View project/order history",
+        "Track project status",
+        "Request revisions",
+        "Duplicate previous projects",
+        "See project description, material list, and total amount"
+      ]
+    },
+    "homeowner_lead": {
+      "description": "A homeowner lead generated online or manually entered by a Wehrung's salesperson.",
+      "mvp_dashboard_required": false,
+      "lead_sources": [
+        "Website deck calculator",
+        "Manual in-store entry",
+        "Manual phone/email entry"
+      ]
+    }
+  },
+  "supplier_dashboard": {
+    "menu": [
+      "Contractors",
+      "Homeowners / Leads",
+      "Catalog",
+      "Reports"
+    ],
+    "future_optional_menu_items": [
+      "Settings",
+      "Team Members",
+      "Integrations",
+      "Notifications",
+      "Billing"
+    ],
+    "contractors_tab": {
+      "purpose": "Allow each Wehrung's salesperson to manage their contractor accounts.",
+      "list_view_columns": [
+        "Contractor company name",
+        "Contact person",
+        "Email",
+        "Phone",
+        "Assigned salesperson",
+        "Discount percentage",
+        "Number of active projects",
+        "Total sales",
+        "Last activity date",
+        "Status",
+        "Actions"
+      ],
+      "contractor_statuses": [
+        "Active",
+        "Inactive"
+      ],
+      "actions": [
+        "View",
+        "Edit",
+        "Disable"
+      ],
+      "add_new_contractor_fields": [
+        "Company name",
+        "Contact person",
+        "Email",
+        "Phone",
+        "Address",
+        "Temporary password or auto-generated invite",
+        "Assigned salesperson",
+        "Contractor discount percentage",
+        "Notes"
+      ],
+      "discount_logic": {
+        "description": "Each contractor receives a percentage discount applied to catalog pricing.",
+        "example": {
+          "catalog_price": 100.0,
+          "discount_percentage": 12,
+          "contractor_price": 88.0
+        },
+        "default_scope": "Apply discount to all catalog items unless future item-level rules are added.",
+        "price_snapshot_required": true,
+        "snapshot_reason": "Historical quotes/orders must not change if catalog prices are updated later."
+      },
+      "contractor_detail_page": {
+        "sections": [
+          "Contact information",
+          "Assigned discount percentage",
+          "Notes",
+          "Project/order list",
+          "Total sales from contractor",
+          "Open orders",
+          "Past orders"
+        ]
+      },
+      "supplier_visible_project_statuses": [
+        "Quote",
+        "Revision Requested",
+        "Approved",
+        "Scheduled",
+        "Shipped",
+        "Delivered",
+        "Paid"
+      ]
+    },
+    "homeowners_leads_tab": {
+      "purpose": "Manage homeowner opportunities and route leads to contractors.",
+      "recommended_label": "Homeowners / Leads",
+      "lead_sources": [
+        "Website",
+        "In-store",
+        "Manual"
+      ],
+      "list_view_columns": [
+        "Homeowner name",
+        "Email",
+        "Phone",
+        "Address",
+        "Lead source",
+        "Project type",
+        "Estimated project value",
+        "Preferred material selections",
+        "Assigned salesperson",
+        "Assigned contractor",
+        "Status",
+        "Created date",
+        "Last activity date",
+        "Actions"
+      ],
+      "actions": [
+        "View",
+        "Assign",
+        "Edit"
+      ],
+      "manual_lead_fields": [
+        "Homeowner name",
+        "Email",
+        "Phone",
+        "Address",
+        "Project description",
+        "Deck size / basic project inputs",
+        "Material preferences",
+        "Estimated budget",
+        "Notes",
+        "Lead source"
+      ],
+      "lead_assignment_logic": {
+        "description": "Salesperson selects a contractor from their contractor list and assigns/sends the lead to that contractor.",
+        "contractor_visibility": "Contractor only sees the homeowner lead after it is assigned to them.",
+        "status_after_assignment": "Redirected to Contractor"
+      },
+      "statuses": [
+        "New",
+        "Contacted",
+        "Redirected to Contractor",
+        "Closed Won",
+        "Lost"
+      ],
+      "status_definitions": {
+        "New": "Lead has been created but not reviewed.",
+        "Contacted": "Salesperson contacted the homeowner.",
+        "Redirected to Contractor": "Salesperson assigned the lead to a contractor.",
+        "Closed Won": "Lead became a material order or confirmed project.",
+        "Lost": "Lead did not move forward."
+      }
+    },
+    "catalog_tab": {
+      "purpose": "Manage products used by the deck calculator and quotes/orders.",
+      "catalog_groups": [
+        "Framing",
+        "Decking",
+        "Railing",
+        "Fascia",
+        "Hardware",
+        "Footings / Concrete",
+        "Lighting",
+        "Accessories",
+        "Fasteners",
+        "Trim",
+        "Stairs"
+      ],
+      "minimum_required_columns": [
+        "SKU",
+        "Description",
+        "Units",
+        "Price",
+        "Stock or Special Order"
+      ],
+      "recommended_catalog_item_fields": [
+        "SKU",
+        "Description",
+        "Group/category",
+        "Brand",
+        "Collection",
+        "Color",
+        "Unit of measure",
+        "Base catalog price",
+        "Stock status",
+        "Active / Inactive",
+        "Special order",
+        "Taxable",
+        "Notes"
+      ],
+      "unit_examples": [
+        "each",
+        "LF",
+        "SF",
+        "box",
+        "bundle",
+        "bag",
+        "roll",
+        "kit"
+      ],
+      "stock_statuses": [
+        "In stock",
+        "Low stock",
+        "Out of stock",
+        "Special order"
+      ],
+      "catalog_quote_logic": [
+        "Pull catalog items",
+        "Calculate required quantities",
+        "Apply contractor-specific discount",
+        "Generate quote/order with itemized material list",
+        "Save price snapshot"
+      ]
+    },
+    "reports_tab": {
+      "purpose": "Provide Wehrung's with sales intelligence and product demand insights.",
+      "main_metrics": [
+        "Total sales dollar amount",
+        "Total number of orders",
+        "Total quotes created",
+        "Quote-to-order conversion rate",
+        "Sales by contractor",
+        "Sales by salesperson",
+        "Sales by date range",
+        "Most popular decking brand",
+        "Most popular decking collection",
+        "Most popular decking color",
+        "Most popular railing brand",
+        "Most popular railing style/color",
+        "Most popular accessories",
+        "Most popular project sizes",
+        "Lead-to-contractor assignment count",
+        "Homeowner leads created",
+        "Homeowner leads closed won/lost"
+      ],
+      "filters": [
+        "Date range",
+        "Contractor",
+        "Salesperson",
+        "Product group",
+        "Brand",
+        "Collection",
+        "Color",
+        "Lead source",
+        "Project/order status"
+      ],
+      "product_popularity_report": {
+        "metrics": [
+          "Most selected decking brands",
+          "Most selected decking collections",
+          "Most selected decking colors",
+          "Most selected railing options",
+          "Most selected accessories",
+          "Quantity sold/requested per product",
+          "Revenue by product group"
+        ],
+        "purpose": "Help Wehrung's decide what products to stock, what colors are trending, and which collections contractors are actually using."
+      }
+    }
+  },
+  "contractor_dashboard": {
+    "account_creation_flow": [
+      "Supplier salesperson creates contractor account",
+      "Contractor receives login credentials or invite link",
+      "Contractor logs in for the first time",
+      "Contractor is prompted to create a new password",
+      "Contractor gains access to their dashboard"
+    ],
+    "menu": [
+      "Projects",
+      "New Project",
+      "Orders / History",
+      "Account"
+    ],
+    "simplified_mvp_menu": [
+      "Projects",
+      "Account"
+    ],
+    "project_statuses_display": [
+      "Draft",
+      "Sent",
+      "Revision Requested",
+      "Approved",
+      "Scheduled",
+      "Delivered",
+      "Completed",
+      "Paid"
+    ],
+    "new_project_flow": [
+      "Contractor clicks New Project",
+      "Contractor enters project information",
+      "Contractor uses deck calculator inputs",
+      "Contractor selects materials, brands, collections, colors, railing, fascia, hardware, etc.",
+      "System generates material list and pricing",
+      "Contractor reviews quote/order",
+      "Contractor saves as Draft or Sends to Wehrung's"
+    ],
+    "project_list_columns": [
+      "Project name",
+      "Customer name or job name",
+      "Address",
+      "Status",
+      "Total amount",
+      "Created date",
+      "Last updated date",
+      "Delivery date, if scheduled",
+      "Actions"
+    ],
+    "project_list_actions": [
+      "View",
+      "Edit Draft",
+      "Duplicate",
+      "Download/Print"
+    ],
+    "project_detail_sections": [
+      "Project name",
+      "Customer / job name",
+      "Jobsite address",
+      "Project description",
+      "Deck dimensions and inputs",
+      "Selected materials",
+      "Itemized material list",
+      "Quantities",
+      "Contractor price",
+      "Total amount",
+      "Status history",
+      "Notes / comments",
+      "Delivery or pickup request",
+      "Duplicate project button"
+    ],
+    "duplicate_project_logic": {
+      "copy": [
+        "Deck dimensions",
+        "Material selections",
+        "Project settings"
+      ],
+      "do_not_copy": [
+        "Old status",
+        "Payment information",
+        "Delivery information"
+      ],
+      "new_project_status": "Draft",
+      "pricing_behavior": "Recalculate using current catalog prices and contractor's current discount."
+    }
+  },
+  "unified_backend_statuses": [
+    "draft",
+    "submitted",
+    "revision_requested",
+    "approved",
+    "scheduled",
+    "shipped",
+    "delivered",
+    "completed",
+    "paid",
+    "canceled_lost"
+  ],
+  "status_definitions": {
+    "draft": "Contractor started the project but has not submitted it to Wehrung's.",
+    "submitted": "Contractor submitted the project/order request to Wehrung's.",
+    "revision_requested": "Supplier or contractor requested a change.",
+    "approved": "Quote/order has been approved.",
+    "scheduled": "Wehrung's scheduled delivery or pickup.",
+    "shipped": "Materials left the supplier or are out for delivery.",
+    "delivered": "Materials were delivered or picked up.",
+    "completed": "Contractor marked project as completed.",
+    "paid": "Order is marked as paid.",
+    "canceled_lost": "Project/order was canceled or lost."
+  },
+  "deck_calculator": {
+    "description": "Starting point for every new contractor project and can also be used by Wehrung's salespeople for homeowner/in-store quotes.",
+    "mvp_inputs": [
+      "Project name",
+      "Jobsite address",
+      "Deck width",
+      "Deck length",
+      "Deck height",
+      "Joist spacing",
+      "Decking brand",
+      "Decking collection",
+      "Decking color",
+      "Board length options",
+      "Railing type",
+      "Railing color",
+      "Stair count",
+      "Fascia option",
+      "Skirting option",
+      "Lighting option",
+      "Delivery or pickup preference",
+      "Notes"
+    ],
+    "joist_spacing_options": [
+      "12 inches O.C.",
+      "16 inches O.C."
+    ],
+    "outputs": [
+      "Material list",
+      "SKU list",
+      "Quantities",
+      "Unit prices",
+      "Contractor discount applied",
+      "Line-item totals",
+      "Project subtotal",
+      "Optional tax/shipping/delivery fields",
+      "Final estimated total"
+    ]
+  },
+  "recommended_database": {
+    "users": [
+      "id",
+      "name",
+      "email",
+      "password_hash",
+      "role",
+      "supplier_id",
+      "contractor_id",
+      "first_login_required_password_reset",
+      "created_at",
+      "updated_at"
+    ],
+    "suppliers": [
+      "id",
+      "name",
+      "address",
+      "phone",
+      "website",
+      "created_at",
+      "updated_at"
+    ],
+    "contractors": [
+      "id",
+      "supplier_id",
+      "assigned_salesperson_id",
+      "company_name",
+      "contact_name",
+      "email",
+      "phone",
+      "address",
+      "discount_percentage",
+      "status",
+      "notes",
+      "created_at",
+      "updated_at"
+    ],
+    "homeowners_leads": [
+      "id",
+      "supplier_id",
+      "assigned_salesperson_id",
+      "assigned_contractor_id",
+      "name",
+      "email",
+      "phone",
+      "address",
+      "source",
+      "project_description",
+      "estimated_value",
+      "status",
+      "notes",
+      "created_at",
+      "updated_at"
+    ],
+    "catalog_groups": [
+      "id",
+      "supplier_id",
+      "name",
+      "description",
+      "sort_order",
+      "active",
+      "created_at",
+      "updated_at"
+    ],
+    "catalog_items": [
+      "id",
+      "supplier_id",
+      "group_id",
+      "sku",
+      "description",
+      "brand",
+      "collection",
+      "color",
+      "unit",
+      "price",
+      "stock_status",
+      "special_order",
+      "active",
+      "notes",
+      "created_at",
+      "updated_at"
+    ],
+    "projects": [
+      "id",
+      "supplier_id",
+      "contractor_id",
+      "created_by_user_id",
+      "homeowner_lead_id",
+      "project_name",
+      "customer_name",
+      "jobsite_address",
+      "description",
+      "status",
+      "deck_width",
+      "deck_length",
+      "deck_height",
+      "joist_spacing",
+      "material_selections_json",
+      "subtotal",
+      "discount_amount",
+      "tax",
+      "delivery_fee",
+      "total",
+      "requested_delivery_date",
+      "created_at",
+      "updated_at"
+    ],
+    "project_items": [
+      "id",
+      "project_id",
+      "catalog_item_id",
+      "sku_snapshot",
+      "description_snapshot",
+      "unit_snapshot",
+      "base_price_snapshot",
+      "discount_percentage_snapshot",
+      "final_unit_price_snapshot",
+      "quantity",
+      "line_total",
+      "created_at",
+      "updated_at"
+    ],
+    "status_history": [
+      "id",
+      "project_id",
+      "old_status",
+      "new_status",
+      "changed_by_user_id",
+      "note",
+      "created_at"
+    ]
+  },
+  "mvp_build_priorities": {
+    "phase_1_must_build_first": [
+      "Authentication for supplier users and contractors",
+      "Supplier dashboard shell",
+      "Contractor dashboard shell",
+      "Contractor creation by supplier",
+      "Contractor-specific discount percentage",
+      "Catalog groups and catalog items",
+      "Contractor new project flow",
+      "Deck calculator basic inputs",
+      "Material list / quote generation",
+      "Project/order status workflow",
+      "Contractor project list and project detail page",
+      "Supplier view of contractor projects",
+      "Homeowner/lead list and manual lead creation",
+      "Lead assignment to contractor",
+      "Basic reports dashboard"
+    ],
+    "phase_2_after_validation": [
+      "Website-embedded homeowner calculator",
+      "Email notifications",
+      "PDF quote/order export",
+      "Contractor invite email automation",
+      "Advanced inventory logic",
+      "Epicor integration",
+      "Payment status automation",
+      "Delivery scheduling integration",
+      "Multi-supplier architecture",
+      "Homeowner portal",
+      "Role permissions for multiple supplier team members"
+    ]
+  },
+  "value_proposition": {
+    "for_wehrungs": [
+      "Makes contractors faster",
+      "Increases quote/order volume",
+      "Captures homeowner leads from the website",
+      "Sends homeowner leads to trusted contractors",
+      "Gives salespeople visibility into contractor activity",
+      "Makes product demand more measurable",
+      "Shows which decking, railing, colors, and accessories are trending",
+      "Helps Wehrung's stock smarter",
+      "Reduces manual email back-and-forth for material lists and delivery requests"
+    ],
+    "for_contractors": [
+      "Creates deck material lists faster",
+      "Shows contractor-specific discounted pricing",
+      "Reduces manual takeoff work",
+      "Submits orders faster",
+      "Duplicates similar projects",
+      "Tracks project/order status",
+      "Keeps old orders organized"
+    ],
+    "for_homeowners": [
+      "Provides guided deck material planning experience",
+      "Allows Wehrung's to capture project information",
+      "Connects homeowners with contractors when labor is needed"
+    ]
+  },
+  "claude_code_prompt": "Build the MVP for a web app called Deckmetry. Deckmetry will initially launch only for Wehrung's as a supplier-side validation pilot. Do not build a multi-supplier marketplace yet, but structure the database with supplier_id fields so multi-supplier support can be added later. The app needs two main dashboards: Supplier Dashboard and Contractor Dashboard. Supplier Dashboard menu: Contractors, Homeowners / Leads, Catalog, Reports. Contractor Dashboard menu: Projects, New Project, Orders / History, Account. Build the MVP according to the structured requirements in this JSON file. Keep the UI clean, professional, and simple. The platform should feel practical for salespeople and contractors, not like a complicated enterprise system. This is a validation MVP for Wehrung's, so the goal is speed, clarity, and usefulness."
+}

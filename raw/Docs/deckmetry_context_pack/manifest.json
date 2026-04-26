@@ -1,0 +1,29 @@
+{
+  "package": "Deckmetry Context Pack",
+  "created_for": "Renan Maia / Deckmetry",
+  "file_count": 14,
+  "files": [
+    "README.md",
+    "01_executive_summary.md",
+    "02_wehrungs_opportunity_strategy.md",
+    "03_system_overview.md",
+    "04_user_flows.md",
+    "05_feature_requirements.md",
+    "06_bom_takeoff_logic.md",
+    "07_data_model.md",
+    "08_epicor_integration_notes.md",
+    "09_pilot_pricing_and_validation.md",
+    "10_demo_script_for_wehrungs.md",
+    "11_product_positioning_and_sales_arguments.md",
+    "12_open_questions_and_next_steps.md",
+    "13_master_prompt_for_v0_or_developer.md"
+  ],
+  "core_modules": [
+    "Homeowner Experience",
+    "Contractor Portal",
+    "Admin/Sales Portal",
+    "BOM/Takeoff Logic",
+    "Pilot Strategy",
+    "Epicor Integration Planning"
+  ]
+}
