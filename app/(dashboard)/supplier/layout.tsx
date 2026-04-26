@@ -3,24 +3,27 @@
 import { DashboardShell } from "@/components/dashboard-shell";
 import {
   LayoutDashboard,
-  FolderKanban,
+  HardHat,
+  Users,
   Package,
+  BarChart3,
+  FolderKanban,
   FileText,
   Truck,
   CreditCard,
-  Users,
   Settings,
 } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/supplier", icon: LayoutDashboard },
-  { label: "Leads", href: "/supplier/leads", icon: Users },
+  { label: "Contractors", href: "/supplier/contractors", icon: HardHat },
+  { label: "Homeowners / Leads", href: "/supplier/leads", icon: Users },
+  { label: "Catalog", href: "/supplier/catalog", icon: Package },
+  { label: "Reports", href: "/supplier/reports", icon: BarChart3 },
   { label: "Projects", href: "/supplier/projects", icon: FolderKanban },
-  { label: "Orders", href: "/supplier/orders", icon: Package },
-  { label: "Invoices", href: "/supplier/invoices", icon: FileText },
+  { label: "Orders", href: "/supplier/orders", icon: FileText },
   { label: "Deliveries", href: "/supplier/deliveries", icon: Truck },
   { label: "Billing", href: "/supplier/billing", icon: CreditCard },
-  { label: "Team", href: "/supplier/team", icon: Users },
   { label: "Settings", href: "/supplier/settings", icon: Settings },
 ];
 
