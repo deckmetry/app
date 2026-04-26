@@ -88,14 +88,10 @@ export async function createContractor(formData: FormData) {
   }
   const { company_name, contact_name, email, phone, address, discount_pct, notes } = parsed.data;
 
-  // Use service client to bypass RLS for org creation
   const serviceClient = createServiceClient();
   const { data: org, error: orgErr } = await serviceClient
     .from("organizations")
-    .insert({
-      name: company_name,
-      type: "contractor",
-    })
+    .insert({ name: company_name, type: "contractor" })
     .select("id")
     .single();
 
@@ -109,6 +105,7 @@ export async function createContractor(formData: FormData) {
     customer_role: "contractor",
     company_name,
     contact_name: contact_name ?? null,
+    email,
     phone: phone ?? null,
     address: address ?? null,
     discount_pct,
@@ -120,7 +117,6 @@ export async function createContractor(formData: FormData) {
     return { success: false, error: relErr.message };
   }
 
-  // Send invite email — when contractor clicks the link they join the pre-created org
   const { error: inviteErr } = await serviceClient.auth.admin.inviteUserByEmail(email, {
     data: {
       role: "contractor",
@@ -131,7 +127,6 @@ export async function createContractor(formData: FormData) {
   });
 
   if (inviteErr) {
-    // Org + relationship already created — still succeed but warn
     revalidatePath("/supplier/contractors");
     return { success: true, orgId: org.id, warning: `Contractor added but invite email failed: ${inviteErr.message}` };
   }
@@ -156,6 +151,7 @@ export async function updateContractor(id: string, formData: FormData) {
     .update({
       company_name,
       contact_name: contact_name ?? null,
+      email,
       phone: phone ?? null,
       address: address ?? null,
       discount_pct,
@@ -169,6 +165,37 @@ export async function updateContractor(id: string, formData: FormData) {
 
   revalidatePath("/supplier/contractors");
   revalidatePath(`/supplier/contractors/${id}`);
+  return { success: true };
+}
+
+export async function resendContractorInvite(id: string) {
+  const supabase = await createClient();
+  const orgId = await getSupplierOrgId();
+  if (!orgId) return { success: false, error: "Not authenticated" };
+
+  const { data: contractor } = await supabase
+    .from("org_customers")
+    .select("email, company_name, contact_name, customer_org_id")
+    .eq("id", id)
+    .eq("owner_org_id", orgId)
+    .eq("customer_role", "contractor")
+    .single();
+
+  if (!contractor?.email) {
+    return { success: false, error: "No email address on file for this contractor" };
+  }
+
+  const serviceClient = createServiceClient();
+  const { error } = await serviceClient.auth.admin.inviteUserByEmail(contractor.email, {
+    data: {
+      role: "contractor",
+      org_id: contractor.customer_org_id,
+      full_name: contractor.contact_name ?? contractor.company_name,
+    },
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/contractor`,
+  });
+
+  if (error) return { success: false, error: error.message };
   return { success: true };
 }
 

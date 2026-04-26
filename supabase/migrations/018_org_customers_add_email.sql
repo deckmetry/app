@@ -1,0 +1,1 @@
+ALTER TABLE org_customers ADD COLUMN IF NOT EXISTS email TEXT;

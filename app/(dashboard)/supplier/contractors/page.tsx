@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, HardHat } from "lucide-react";
 import Link from "next/link";
 import { AddContractorDialog } from "./add-contractor-dialog";
+import { ContractorRowActions } from "./contractor-row-actions";
 
 export default async function SupplierContractorsPage() {
   const supabase = await createClient();
@@ -46,7 +47,6 @@ export default async function SupplierContractorsPage() {
     .eq("status", "active")
     .order("created_at", { ascending: false });
 
-  // Get project counts per contractor org
   const contractorOrgIds = (contractors ?? []).map((c: any) => c.customer_org_id);
   const projectCounts: Record<string, number> = {};
 
@@ -83,8 +83,7 @@ export default async function SupplierContractorsPage() {
             </div>
             <CardTitle className="text-lg mb-2">No Contractors Yet</CardTitle>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Add your first contractor to assign discounts and track their
-              projects.
+              Add your first contractor to assign discounts and track their projects.
             </p>
           </CardContent>
         </Card>
@@ -107,7 +106,7 @@ export default async function SupplierContractorsPage() {
                     <TableHead>Discount</TableHead>
                     <TableHead>Projects</TableHead>
                     <TableHead>Added</TableHead>
-                    <TableHead className="w-[60px]"></TableHead>
+                    <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -119,9 +118,14 @@ export default async function SupplierContractorsPage() {
                       <TableCell className="text-sm text-muted-foreground">
                         {c.contact_name ?? "—"}
                       </TableCell>
-                      <TableCell className="text-sm">
-                        {c.notes ? (
-                          <span className="text-muted-foreground">{c.notes.slice(0, 30)}</span>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {c.email ? (
+                          <a
+                            href={`mailto:${c.email}`}
+                            className="hover:underline text-primary"
+                          >
+                            {c.email}
+                          </a>
                         ) : "—"}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
@@ -146,11 +150,14 @@ export default async function SupplierContractorsPage() {
                         {new Date(c.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <Button asChild variant="ghost" size="icon" className="h-8 w-8">
-                          <Link href={`/supplier/contractors/${c.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                            <Link href={`/supplier/contractors/${c.id}`}>
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          <ContractorRowActions contractor={c} />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
