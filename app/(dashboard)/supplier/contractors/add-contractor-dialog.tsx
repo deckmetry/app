@@ -28,7 +28,11 @@ export function AddContractorDialog() {
     startTransition(async () => {
       const result = await createContractor(formData);
       if (result.success) {
-        toast.success("Contractor added");
+        if (result.warning) {
+          toast.warning("Contractor added", { description: result.warning });
+        } else {
+          toast.success("Contractor added — invite email sent");
+        }
         setOpen(false);
       } else {
         toast.error("Failed to add contractor", { description: result.error });

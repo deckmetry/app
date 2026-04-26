@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -87,8 +88,9 @@ export async function createContractor(formData: FormData) {
   }
   const { company_name, contact_name, email, phone, address, discount_pct, notes } = parsed.data;
 
-  // Create a placeholder org for the contractor (they can claim it via invite later)
-  const { data: org, error: orgErr } = await supabase
+  // Use service client to bypass RLS for org creation
+  const serviceClient = createServiceClient();
+  const { data: org, error: orgErr } = await serviceClient
     .from("organizations")
     .insert({
       name: company_name,
@@ -116,6 +118,22 @@ export async function createContractor(formData: FormData) {
 
   if (relErr) {
     return { success: false, error: relErr.message };
+  }
+
+  // Send invite email — when contractor clicks the link they join the pre-created org
+  const { error: inviteErr } = await serviceClient.auth.admin.inviteUserByEmail(email, {
+    data: {
+      role: "contractor",
+      org_id: org.id,
+      full_name: contact_name ?? company_name,
+    },
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/contractor`,
+  });
+
+  if (inviteErr) {
+    // Org + relationship already created — still succeed but warn
+    revalidatePath("/supplier/contractors");
+    return { success: true, orgId: org.id, warning: `Contractor added but invite email failed: ${inviteErr.message}` };
   }
 
   revalidatePath("/supplier/contractors");
