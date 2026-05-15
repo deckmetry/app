@@ -1,0 +1,7 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "node --disable-warning=ExperimentalWarning src/index.js"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
