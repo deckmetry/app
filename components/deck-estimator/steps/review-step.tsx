@@ -57,6 +57,9 @@ import {
   Trash2,
   Save,
   Loader2,
+  Package,
+  CalendarClock,
+  ClipboardCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -336,6 +339,11 @@ export function ReviewStep() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const existingProjectId = searchParams.get("projectId") ?? undefined;
+  // Contractor-portal demo mode: shows contractor-specific actions (Create Order,
+  // Request Delivery Date, etc.) instead of the homeowner upsells. Self-contained —
+  // no DB writes, so it works without auth during the presentation.
+  const isContractorDemo = searchParams.get("demo") === "contractor";
+  const [demoAction, setDemoAction] = useState<string | null>(null);
   const roleParam = searchParams.get("role") ?? "homeowner";
   const roleBase = ["homeowner", "contractor", "supplier"].includes(roleParam)
     ? roleParam
@@ -673,8 +681,8 @@ export function ReviewStep() {
         })}
       </div>
 
-      {/* Save / Email CTA */}
-      <div className="flex justify-center">
+      {/* Save / Email CTA — hidden in contractor demo (actions live in Next Steps below) */}
+      <div className={`flex justify-center ${isContractorDemo ? "hidden" : ""}`}>
         {embed.isEmbed ? (
           <Button
             size="lg"
@@ -761,8 +769,8 @@ export function ReviewStep() {
         </div>
       ) : null}
 
-      {/* MVP Action Buttons — hidden in embed mode */}
-      {!embed.isEmbed && (
+      {/* MVP Action Buttons — homeowner upsells (hidden in embed + contractor demo) */}
+      {!embed.isEmbed && !isContractorDemo && (
         <div className="border-t-2 border-border pt-8 print:hidden">
           <h3 className="text-base font-semibold uppercase tracking-wide text-foreground mb-6">
             Next Steps
@@ -820,6 +828,93 @@ export function ReviewStep() {
               <span className="font-semibold text-base text-foreground">Pro Review</span>
               <span className="text-xs text-muted-foreground text-center">
                 $97 — expert plan review
+              </span>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Contractor portal actions — submit to Wehrung's instead of homeowner upsells */}
+      {!embed.isEmbed && isContractorDemo && (
+        <div className="border-t-2 border-border pt-8 print:hidden">
+          <h3 className="text-base font-semibold uppercase tracking-wide text-foreground mb-1">
+            Submit to Wehrung&apos;s
+          </h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            Turn this material list into an order request. Wehrung&apos;s reviews availability and confirms your delivery date.
+          </p>
+
+          {demoAction && (
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 dark:border-emerald-800 dark:bg-emerald-950/30">
+              <div className="flex items-center gap-2 text-sm text-emerald-800 dark:text-emerald-300">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>{demoAction}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push("/demo/contractor/orders")}
+              >
+                View Orders
+              </Button>
+            </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Button
+              onClick={() =>
+                setDemoAction("Order ORD-1043 created and submitted to Wehrung's for review.")
+              }
+              className="h-auto py-6 flex flex-col items-center gap-3 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Package className="h-8 w-8" />
+              <span className="font-semibold text-base">Create Order</span>
+              <span className="text-xs opacity-90 text-center">
+                Submit this BOM to Wehrung&apos;s
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setDemoAction("Sent to Wehrung's for material review.")}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <ClipboardCheck className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Request Wehrung&apos;s Review</span>
+              <span className="text-xs text-muted-foreground text-center">
+                Confirm availability &amp; pricing
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setDemoAction("Delivery date request sent to Wehrung's.")}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <CalendarClock className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Request Delivery Date</span>
+              <span className="text-xs text-muted-foreground text-center">
+                Propose a delivery date
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setDemoAction("Estimate saved as a draft project.")}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <Save className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Save as Draft</span>
+              <span className="text-xs text-muted-foreground text-center">
+                Save without submitting
+              </span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/demo/contractor")}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <FileText className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Back to Portal</span>
+              <span className="text-xs text-muted-foreground text-center">
+                Return to your dashboard
               </span>
             </Button>
           </div>
