@@ -160,7 +160,7 @@
   [data-sidebar],
   [data-radix-scroll-area-viewport],
   button,
-  .print\\:hidden {
+  .print\:hidden {
     display: none !important;
   }
 
