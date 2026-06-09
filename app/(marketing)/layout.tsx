@@ -22,19 +22,19 @@ export default function MarketingLayout({
 
           <nav className="hidden items-center gap-6 md:flex">
             <Link
-              href="/for-homeowners"
+              href="/for/homeowners"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               For Homeowners
             </Link>
             <Link
-              href="/for-contractors"
+              href="/for/contractors"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               For Contractors
             </Link>
             <Link
-              href="/for-suppliers"
+              href="/for/suppliers"
               className="text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               For Suppliers
@@ -76,9 +76,9 @@ export default function MarketingLayout({
             </div>
 
             <nav className="flex flex-wrap gap-x-8 gap-y-2">
-              <Link href="/for-homeowners" className="text-sm text-muted-foreground hover:text-foreground transition-colors">For Homeowners</Link>
-              <Link href="/for-contractors" className="text-sm text-muted-foreground hover:text-foreground transition-colors">For Contractors</Link>
-              <Link href="/for-suppliers" className="text-sm text-muted-foreground hover:text-foreground transition-colors">For Suppliers</Link>
+              <Link href="/for/homeowners" className="text-sm text-muted-foreground hover:text-foreground transition-colors">For Homeowners</Link>
+              <Link href="/for/contractors" className="text-sm text-muted-foreground hover:text-foreground transition-colors">For Contractors</Link>
+              <Link href="/for/suppliers" className="text-sm text-muted-foreground hover:text-foreground transition-colors">For Suppliers</Link>
               <Link href="/estimate" className="text-sm font-medium text-foreground hover:text-primary transition-colors">Start Estimate</Link>
             </nav>
           </div>

@@ -17,6 +17,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { SupplierWebsiteMockup } from "@/components/marketing/supplier-website-mockup";
+import { WaitlistForm } from "@/components/showroom/waitlist-form";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -70,9 +71,9 @@ export default function ForSuppliersPage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background py-24">
         <div className="mx-auto max-w-6xl px-4 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm font-medium mb-6">
-            <span className="flex h-2 w-2 rounded-full bg-primary" />
-            For Deck Material Suppliers
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-4 py-1.5 text-sm font-semibold text-amber-700 mb-6 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+            <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            Coming Soon — For Deck Material Suppliers
           </div>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Turn Your Website Into a
@@ -82,16 +83,11 @@ export default function ForSuppliersPage() {
             Embed a professional deck estimator on your website. Homeowners get
             instant BOMs, you get qualified leads with full project details.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/signup?role=supplier">
+          <div className="mt-8 flex justify-center">
+            <Link href="#waitlist">
               <Button size="lg" className="gap-2">
-                Get Started
+                Join the Waitlist
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/pricing">
-              <Button variant="outline" size="lg">
-                View Pricing
               </Button>
             </Link>
           </div>
@@ -178,23 +174,26 @@ export default function ForSuppliersPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24">
-        <div className="mx-auto max-w-3xl px-4 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Ready to Start Generating Leads?
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Set up your embedded estimator in minutes. No coding required.
-          </p>
-          <div className="mt-8">
-            <Link href="/signup?role=supplier">
-              <Button size="lg" className="gap-2">
-                Create Your Account
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+      {/* Waitlist */}
+      <section id="waitlist" className="scroll-mt-20 py-24">
+        <div className="mx-auto max-w-2xl px-4">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold tracking-tight">
+              Join the Supplier Waitlist
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              The supplier platform is launching soon. Join the waitlist and
+              we&apos;ll notify you the moment access opens.
+            </p>
           </div>
+          <Card className="border-2">
+            <CardContent className="pt-6">
+              <WaitlistForm
+                type="supplier_waitlist"
+                buttonLabel="Join Supplier Waitlist"
+              />
+            </CardContent>
+          </Card>
         </div>
       </section>
     </div>

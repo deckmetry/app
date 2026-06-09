@@ -17,6 +17,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { ContractorDashboardMockup } from "@/components/marketing/contractor-dashboard-mockup";
+import { WaitlistForm } from "@/components/showroom/waitlist-form";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -70,9 +71,9 @@ export default function ForContractorsPage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 to-background py-24">
         <div className="mx-auto max-w-6xl px-4 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm font-medium mb-6">
-            <span className="flex h-2 w-2 rounded-full bg-primary" />
-            For Deck Contractors
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-4 py-1.5 text-sm font-semibold text-amber-700 mb-6 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+            <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            Coming Soon — For Deck Contractors
           </div>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             Estimate, Quote, and
@@ -83,16 +84,11 @@ export default function ForContractorsPage() {
             builds client-ready proposals, and manages your entire order
             pipeline.
           </p>
-          <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/signup?role=contractor">
+          <div className="mt-8 flex justify-center">
+            <Link href="#waitlist">
               <Button size="lg" className="gap-2">
-                Start Free
+                Join the Waitlist
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/pricing">
-              <Button variant="outline" size="lg">
-                View Plans
               </Button>
             </Link>
           </div>
@@ -182,24 +178,26 @@ export default function ForContractorsPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24">
-        <div className="mx-auto max-w-3xl px-4 text-center">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Start Estimating for Free
-          </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            3 free estimates per month on the Starter plan. No credit card
-            required.
-          </p>
-          <div className="mt-8">
-            <Link href="/signup?role=contractor">
-              <Button size="lg" className="gap-2">
-                Create Free Account
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+      {/* Waitlist */}
+      <section id="waitlist" className="scroll-mt-20 py-24">
+        <div className="mx-auto max-w-2xl px-4">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold tracking-tight">
+              Join the Contractor Waitlist
+            </h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              The contractor platform is launching soon. Join the waitlist and
+              we&apos;ll notify you the moment access opens.
+            </p>
           </div>
+          <Card className="border-2">
+            <CardContent className="pt-6">
+              <WaitlistForm
+                type="contractor_waitlist"
+                buttonLabel="Join Contractor Waitlist"
+              />
+            </CardContent>
+          </Card>
         </div>
       </section>
     </div>

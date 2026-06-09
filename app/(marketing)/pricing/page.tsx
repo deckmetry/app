@@ -113,12 +113,12 @@ const contractorPlans: ContractorPlan[] = [
 // ---- Supplier plan ----
 
 const supplierFeatures: PlanFeature[] = [
+  { text: "3 sales seats included" },
   { text: "Full order inbox + management" },
   { text: "Invoice generation + payments" },
   { text: "Delivery tracking with POD" },
   { text: "Realtime notifications" },
   { text: "Analytics dashboard" },
-  { text: "Multiple team members" },
 ];
 
 export default async function PricingPage() {
@@ -264,14 +264,14 @@ export default async function PricingPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <span className="text-4xl font-bold tracking-tight">$697</span>
+                <span className="text-4xl font-bold tracking-tight">$1,697</span>
                 <span className="text-muted-foreground">/month</span>
                 <span className="text-sm text-muted-foreground ml-1">
                   + $20/seat
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Includes 1 seat. Additional seats $20/month each. $7,500
+                Includes 3 sales seats. Additional seats $20/month each. $7,500
                 one-time setup fee.
               </p>
               <ul className="space-y-2.5">
