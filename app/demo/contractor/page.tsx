@@ -22,7 +22,7 @@ export default function ContractorDashboardPage() {
         description="Your projects, orders, deliveries, leads, and balances with Wehrung's — all in one place."
       >
         <Button asChild className="gap-2">
-          <Link href="/estimate?demo=contractor"><Calculator className="h-4 w-4" /> New Estimate</Link>
+          <Link href="/estimate/pro?demo=contractor"><Calculator className="h-4 w-4" /> New Estimate</Link>
         </Button>
       </PageHeader>
 

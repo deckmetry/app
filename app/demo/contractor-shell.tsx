@@ -10,7 +10,7 @@ import {
 
 const navItems = [
   { label: "Dashboard", href: "/demo/contractor", icon: LayoutDashboard, exact: true },
-  { label: "New Estimate", href: "/estimate?demo=contractor", icon: Calculator },
+  { label: "New Estimate", href: "/estimate/pro?demo=contractor", icon: Calculator },
   { label: "Projects", href: "/demo/contractor/projects", icon: FolderKanban },
   { label: "Orders", href: "/demo/contractor/orders", icon: FileText },
   { label: "Leads from Wehrung's", href: "/demo/contractor/leads", icon: Users },

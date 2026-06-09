@@ -66,7 +66,7 @@ export default function ContractorLeadsPage() {
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         <Button asChild size="sm" className="gap-1.5">
-                          <Link href="/estimate?demo=contractor"><ArrowRight className="h-3.5 w-3.5" /> Convert to Project</Link>
+                          <Link href="/estimate/pro?demo=contractor"><ArrowRight className="h-3.5 w-3.5" /> Convert to Project</Link>
                         </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

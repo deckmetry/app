@@ -1,22 +1,14 @@
-import { Suspense } from "react";
-import { WizardShell } from "@/components/deck-estimator/wizard-shell";
-import { Toaster } from "@/components/ui/sonner";
-import { getEstimate } from "@/lib/actions/estimates";
+import { ShowroomEstimator } from "@/components/showroom/showroom-estimator";
 
+// Public showroom estimator.
+//   /estimate                -> public paid mode (detailed BOM locked behind $79)
+//   /estimate?demo=wehrungs  -> Wehrung's showroom demo (BOM unlocked + badge)
 export default async function EstimatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ edit?: string }>;
+  searchParams: Promise<{ demo?: string }>;
 }) {
-  const { edit } = await searchParams;
-  const existingEstimate = edit ? await getEstimate(edit) : null;
-
-  return (
-    <>
-      <Suspense>
-        <WizardShell initialEstimate={existingEstimate} />
-      </Suspense>
-      <Toaster position="bottom-right" />
-    </>
-  );
+  const { demo } = await searchParams;
+  const mode = demo === "wehrungs" ? "demo" : "paid";
+  return <ShowroomEstimator mode={mode} />;
 }

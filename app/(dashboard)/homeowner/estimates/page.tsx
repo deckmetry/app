@@ -46,7 +46,7 @@ export default async function HomeownerEstimatesPage() {
     <div className="space-y-6">
       <RealtimeRefresh table="estimates" />
       <PageHeader title="My Estimates" description="Your saved deck estimates and BOMs">
-        <Link href="/estimate">
+        <Link href="/estimate/pro">
           <Button size="sm" className="gap-2">
             <PlusCircle className="h-4 w-4" />
             New Estimate

@@ -62,7 +62,7 @@ export default async function ContractorEstimatesPage() {
         title="Estimates"
         description="All your deck estimates. Create quotes from completed estimates."
       >
-        <Link href="/estimate">
+        <Link href="/estimate/pro">
           <Button size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
             New Estimate

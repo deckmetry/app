@@ -18,7 +18,7 @@ export default function ContractorProjectsPage() {
     <div className="space-y-8">
       <PageHeader title="Projects" description="Your full project history with Wehrung's.">
         <Button asChild className="gap-2">
-          <Link href="/estimate?demo=contractor"><Calculator className="h-4 w-4" /> New Estimate</Link>
+          <Link href="/estimate/pro?demo=contractor"><Calculator className="h-4 w-4" /> New Estimate</Link>
         </Button>
       </PageHeader>
 
@@ -88,7 +88,7 @@ export default function ContractorProjectsPage() {
                           if (a === "Edit") {
                             return (
                               <Button key={a} asChild variant="ghost" size="sm" className="gap-1.5">
-                                <Link href="/estimate?demo=contractor"><Pencil className="h-3.5 w-3.5" /> Edit</Link>
+                                <Link href="/estimate/pro?demo=contractor"><Pencil className="h-3.5 w-3.5" /> Edit</Link>
                               </Button>
                             );
                           }

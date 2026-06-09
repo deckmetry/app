@@ -66,7 +66,7 @@ export default async function ContractorPipelinePage() {
         title="Pipeline"
         description="Overview of your estimates and proposals"
       >
-        <Link href="/estimate">
+        <Link href="/estimate/pro">
           <Button size="sm" className="gap-2">
             <Plus className="h-4 w-4" />
             New Estimate

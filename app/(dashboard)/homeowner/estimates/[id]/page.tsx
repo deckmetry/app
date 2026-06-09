@@ -280,7 +280,7 @@ export default async function HomeownerEstimateDetailPage({
         <Link href="/homeowner/estimates">
           <Button variant="outline">Back to Estimates</Button>
         </Link>
-        <Link href="/estimate">
+        <Link href="/estimate/pro">
           <Button>New Estimate</Button>
         </Link>
       </div>

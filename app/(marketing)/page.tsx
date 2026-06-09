@@ -2,99 +2,34 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ArrowRight,
-  Calculator,
-  FileText,
-  Package,
-  Truck,
-  Shield,
-  Zap,
-  Users,
-  CheckCircle2,
+  ArrowRight, Ruler, ClipboardList, Phone, CheckCircle2, Sparkles, Hammer,
 } from "lucide-react";
 
-const personas = [
+const steps = [
   {
-    title: "Homeowners",
-    description:
-      "Generate accurate BOMs, get professional drawings, and connect with contractors — all for free.",
-    icon: Users,
-    cta: "Start Estimating",
-    href: "/estimate",
-    features: [
-      "Free deck estimator wizard",
-      "Professional floor plan drawings",
-      "Material bill of quantities",
-      "Compare contractor proposals",
-    ],
+    icon: Ruler,
+    title: "Tell us about your deck",
+    description: "Pick your project type, size, height, decking, color, railing, stairs, and add-ons — in a few taps.",
   },
   {
-    title: "Contractors",
-    description:
-      "Quote materials, build professional proposals, and manage the full project workflow.",
-    icon: Calculator,
-    cta: "Start Free Trial",
-    href: "/signup?role=contractor",
-    features: [
-      "Instant BOM generation",
-      "Professional PDF proposals",
-      "Customer approval workflow",
-      "Order management",
-    ],
+    icon: ClipboardList,
+    title: "Get your instant estimate",
+    description: "See an estimated material range and a detailed material list built from real decking products.",
   },
   {
-    title: "Suppliers",
-    description:
-      "Receive orders, generate invoices, and track deliveries — all in one platform.",
-    icon: Truck,
-    cta: "Join as Supplier",
-    href: "/signup?role=supplier",
-    features: [
-      "Order inbox & management",
-      "Invoice generation",
-      "Payment processing",
-      "Delivery tracking",
-    ],
+    icon: Phone,
+    title: "Plan your next steps",
+    description: "Request a pro contact, permit-ready drawings, or a 3D rendering — and we'll help from there.",
   },
 ];
 
-const features = [
-  {
-    icon: Calculator,
-    title: "Smart BOM Engine",
-    description:
-      "Automatically calculates every board, joist, footing, and fastener from your deck dimensions. Supports Trex, TimberTech, and Deckorators.",
-  },
-  {
-    icon: FileText,
-    title: "Professional Proposals",
-    description:
-      "Generate branded PDF proposals with line items, totals, and customer approval workflow. Share via a unique link — no login required.",
-  },
-  {
-    icon: Package,
-    title: "Order Management",
-    description:
-      "Convert approved proposals into purchase orders. Track from order to delivery with real-time status updates.",
-  },
-  {
-    icon: Shield,
-    title: "Multi-Tenant Platform",
-    description:
-      "Each organization has its own workspace with role-based permissions. Homeowners, contractors, and suppliers all in one platform.",
-  },
-  {
-    icon: Zap,
-    title: "Real-Time Updates",
-    description:
-      "Get instant notifications when proposals are viewed, approved, orders ship, or deliveries arrive. Never miss a project milestone.",
-  },
-  {
-    icon: Truck,
-    title: "Full Supply Chain",
-    description:
-      "From estimate to delivery confirmation — manage the entire deck-building supply chain. BOM → Quote → Approval → Order → Invoice → Delivery.",
-  },
+const brands = ["Trex", "Deckorators", "TimberTech"];
+
+const benefits = [
+  "Free to use — no account required",
+  "Real composite decking brands & colors",
+  "Detailed, printable material list",
+  "Built for homeowners and showrooms",
 ];
 
 export default function LandingPage() {
@@ -103,146 +38,116 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5" />
-        <div className="relative mx-auto max-w-6xl px-4 py-24 sm:py-32">
+        <div className="relative mx-auto max-w-5xl px-4 py-20 sm:py-28">
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground">
-              <Zap className="h-3.5 w-3.5 text-primary" />
-              The modern deck-building platform
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Instant deck material estimates
             </div>
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              Estimate, quote, and deliver{" "}
-              <span className="text-primary">deck projects</span>
+              Design your dream deck,{" "}
+              <span className="text-primary">get an instant estimate</span>
             </h1>
-            <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
-              Deckmetry connects homeowners, contractors, and suppliers on one
-              platform. From material estimates to delivery confirmation — manage
-              the entire deck-building workflow.
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
+              Answer a few quick questions and Deckmetry builds your estimated material range and a
+              detailed material list — in minutes, for free.
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Link href="/signup">
-                <Button size="lg" className="gap-2 text-base">
-                  Get Started Free
+              <Link href="/estimate">
+                <Button size="lg" className="gap-2 px-8 text-base">
+                  Start Your Free Estimate
                   <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/features">
-                <Button variant="outline" size="lg" className="text-base">
-                  See How It Works
                 </Button>
               </Link>
             </div>
             <p className="mt-4 text-sm text-muted-foreground">
-              Free for homeowners. No credit card required.
+              No account needed. Takes about 2 minutes.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Personas */}
+      {/* How it works */}
       <section className="border-t bg-muted/30">
-        <div className="mx-auto max-w-6xl px-4 py-20">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight">
-              Built for every role in the supply chain
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Whether you&apos;re building a deck, quoting materials, or
-              delivering lumber — Deckmetry has you covered.
-            </p>
+        <div className="mx-auto max-w-5xl px-4 py-20">
+          <div className="mb-12 text-center">
+            <h2 className="text-3xl font-bold tracking-tight">How it works</h2>
+            <p className="mt-3 text-muted-foreground">Three simple steps from idea to material list.</p>
           </div>
-
           <div className="grid gap-6 md:grid-cols-3">
-            {personas.map((persona) => (
-              <Card
-                key={persona.title}
-                className="group transition-all duration-200 hover:shadow-lg hover:border-primary/30"
-              >
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                    <persona.icon className="h-5 w-5 text-primary" />
+            {steps.map((s, i) => (
+              <Card key={s.title} className="transition-all hover:shadow-lg hover:border-primary/30">
+                <CardContent className="space-y-4 pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+                      <s.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="text-3xl font-extrabold text-muted-foreground/20">{i + 1}</span>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">{persona.title}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {persona.description}
-                    </p>
-                  </div>
-                  <ul className="space-y-2">
-                    {persona.features.map((f) => (
-                      <li
-                        key={f}
-                        className="flex items-start gap-2 text-sm"
-                      >
-                        <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href={persona.href}>
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                    >
-                      {persona.cta}
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
+                  <h3 className="text-lg font-semibold">{s.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{s.description}</p>
                 </CardContent>
               </Card>
             ))}
           </div>
+          <div className="mt-10 text-center">
+            <Link href="/estimate">
+              <Button size="lg" className="gap-2 px-8 text-base">
+                Start Your Free Estimate
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* Features grid */}
+      {/* Materials + benefits */}
       <section className="border-t">
-        <div className="mx-auto max-w-6xl px-4 py-20">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight">
-              Everything you need, nothing you don&apos;t
-            </h2>
-            <p className="mt-3 text-muted-foreground">
-              Purpose-built tools for the deck-building supply chain.
-            </p>
-          </div>
-
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((feature) => (
-              <div key={feature.title} className="space-y-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                  <feature.icon className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <h3 className="text-base font-semibold">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {feature.description}
-                </p>
+        <div className="mx-auto max-w-5xl px-4 py-20">
+          <div className="grid items-center gap-12 md:grid-cols-2">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-lg bg-muted px-3 py-1.5 text-sm font-medium">
+                <Hammer className="h-4 w-4 text-primary" />
+                Real materials, real estimates
               </div>
-            ))}
+              <h2 className="text-3xl font-bold tracking-tight">
+                Premium composite decking you can choose from
+              </h2>
+              <p className="mt-3 text-muted-foreground">
+                Estimates are built from leading composite decking lines and colors — so your material list
+                reflects what actually goes on your deck.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {brands.map((b) => (
+                  <span key={b} className="rounded-full border bg-card px-4 py-1.5 text-sm font-semibold">{b}</span>
+                ))}
+              </div>
+            </div>
+            <ul className="space-y-3">
+              {benefits.map((b) => (
+                <li key={b} className="flex items-start gap-3 text-base">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  {b}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
 
       {/* CTA */}
       <section className="border-t bg-primary/5">
-        <div className="mx-auto max-w-6xl px-4 py-20">
+        <div className="mx-auto max-w-5xl px-4 py-20">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight">
-              Ready to streamline your deck projects?
-            </h2>
+            <h2 className="text-3xl font-bold tracking-tight">Ready to estimate your deck?</h2>
             <p className="mt-4 text-muted-foreground">
-              Join Deckmetry today. Homeowners start free, contractors get 3
-              projects per month on the free plan.
+              Get your estimated material range and detailed material list in just a few minutes — completely free.
             </p>
-            <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Link href="/signup">
-                <Button size="lg" className="gap-2 text-base">
-                  Create Free Account
+            <div className="mt-8">
+              <Link href="/estimate">
+                <Button size="lg" className="gap-2 px-8 text-base">
+                  Start Your Free Estimate
                   <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/pricing">
-                <Button variant="outline" size="lg" className="text-base">
-                  View Pricing
                 </Button>
               </Link>
             </div>
