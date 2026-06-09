@@ -68,9 +68,8 @@ export function ShowroomEstimator({ mode }: { mode: Mode }) {
   const toggleAddOn = (label: string) =>
     set({ addOns: sel.addOns.includes(label) ? sel.addOns.filter((a) => a !== label) : [...sel.addOns, label] });
 
-  // Payments disabled for now — the detailed BOM is shown in both modes.
-  // (To re-enable the $79 gate later: set `unlocked = mode === "demo"`.)
-  const unlocked = true;
+  // Demo mode shows the BOM free; public paid mode locks it behind the $79 upgrade.
+  const unlocked = mode === "demo";
 
   const handleUnlock = () => {
     const link = process.env.NEXT_PUBLIC_BOM_PAYMENT_LINK;
@@ -88,7 +87,7 @@ export function ShowroomEstimator({ mode }: { mode: Mode }) {
     const ref = makeReference();
     const lead = buildLead(sel, {
       source: mode === "demo" ? "Wehrung's Showroom Demo" : "Website Estimator",
-      bomStatus: mode === "demo" ? "demo" : "unlocked",
+      bomStatus: mode === "demo" ? "demo" : "locked",
       wantsPro: !!services.pro,
       wantsDrawings: !!services.drawings,
       wants3d: !!services["3d"],
@@ -101,14 +100,14 @@ export function ShowroomEstimator({ mode }: { mode: Mode }) {
   };
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 sm:py-10">
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
       <Header mode={mode} />
 
       {phase === "steps" && (
         <>
           <Progress step={step} total={TOTAL_STEPS} />
           <div className="mt-6 min-h-[320px]">
-            {step === 0 && <OptionGrid title="What type of project is this?" options={projectTypes} value={sel.projectType} onSelect={(v) => set({ projectType: v })} />}
+            {step === 0 && <OptionGrid title="What type of project is this?" options={projectTypes} value={sel.projectType} onSelect={(v) => set({ projectType: v })} cols={2} />}
             {step === 1 && <OptionGrid title="What size deck?" options={deckSizes.map((s) => s.label)} value={sel.sizeLabel} onSelect={(v) => set({ sizeLabel: v })} cols={2} />}
             {step === 2 && <OptionGrid title="How high off the ground?" options={deckHeights.map((h) => h.label)} value={sel.heightLabel} onSelect={(v) => set({ heightLabel: v })} cols={2} />}
             {step === 3 && <OptionGrid title="Choose your decking material" options={deckingLines.map((l) => l.label)} value={sel.lineLabel} onSelect={(v) => set({ lineLabel: v })} cols={2} />}
@@ -119,11 +118,11 @@ export function ShowroomEstimator({ mode }: { mode: Mode }) {
             {step === 8 && <ContactForm sel={sel} set={set} />}
           </div>
 
-          <div className="mt-8 flex items-center justify-between gap-3">
-            <Button variant="ghost" onClick={back} disabled={step === 0} className="gap-1.5">
+          <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Button variant="ghost" onClick={back} disabled={step === 0} className="h-12 w-full gap-1.5 sm:h-11 sm:w-auto">
               <ArrowLeft className="h-4 w-4" /> Back
             </Button>
-            <Button size="lg" onClick={next} disabled={!stepValid(step)} className="gap-2 px-8 text-base">
+            <Button size="lg" onClick={next} disabled={!stepValid(step)} className="h-12 w-full gap-2 px-8 text-base sm:w-auto">
               {step === TOTAL_STEPS - 1 ? "See My Estimate" : "Continue"}
               <ArrowRight className="h-4 w-4" />
             </Button>
@@ -197,7 +196,7 @@ function OptionGrid({ title, options, value, onSelect, cols = 1 }: {
               key={o}
               onClick={() => onSelect(o)}
               className={cn(
-                "flex items-center justify-between rounded-xl border-2 px-5 py-5 text-left text-lg font-medium transition-all",
+                "flex min-h-[60px] items-center justify-between gap-3 rounded-xl border-2 px-5 py-4 text-left text-lg font-medium transition-all",
                 active ? "border-primary bg-primary/5 text-primary" : "border-border bg-card hover:border-primary/40 hover:bg-muted/50"
               )}
             >
@@ -440,7 +439,7 @@ function BomTable({ bom }: { bom: { category: string; item: string; qty: string 
           </table>
         </div>
         <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          This BOM is a planning material list and must be reviewed and confirmed by Wehrung&apos;s before ordering.
+          This BOM is a planning material list and must be reviewed and confirmed before ordering.
         </p>
       </CardContent>
     </Card>

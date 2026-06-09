@@ -98,7 +98,7 @@ export default function EstimateSuccessPage() {
                 </table>
               </div>
               <p className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                This BOM is a planning material list and must be reviewed and confirmed by Wehrung&apos;s before ordering.
+                This BOM is a planning material list and must be reviewed and confirmed before ordering.
               </p>
             </CardContent>
           </Card>
