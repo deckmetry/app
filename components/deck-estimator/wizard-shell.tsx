@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { EstimateInput, WizardStep } from "@/lib/types";
 import { WIZARD_STEPS } from "@/lib/store";
@@ -103,6 +103,10 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
 
   // Read URL params for supplier referral + project pre-population
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  // Public showroom estimator (/estimate) vs internal/contractor tool (/estimate/pro)
+  const isPublic = pathname === "/estimate";
+  const isWehrungsDemo = searchParams.get("demo") === "wehrungs";
   useEffect(() => {
     // Load existing estimate for editing
     if (initialEstimate) {
@@ -235,9 +239,9 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Link
-              href="/dashboard"
+              href={isPublic ? "/" : "/dashboard"}
               className="flex h-9 w-9 items-center justify-center rounded-lg border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              title="Back to dashboard"
+              title={isPublic ? "Back to home" : "Back to dashboard"}
             >
               <ArrowLeft className="h-4 w-4" />
             </Link>
@@ -255,9 +259,16 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
               </div>
             </div>
           </div>
-          <Badge variant="secondary" className="hidden sm:flex">
-            Step {currentStepIndex + 1} of {WIZARD_STEPS.length}
-          </Badge>
+          <div className="flex items-center gap-2">
+            {isWehrungsDemo && (
+              <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+                Wehrung&apos;s Showroom Demo
+              </span>
+            )}
+            <Badge variant="secondary" className="hidden sm:flex">
+              Step {currentStepIndex + 1} of {WIZARD_STEPS.length}
+            </Badge>
+          </div>
         </div>
       </header>
 

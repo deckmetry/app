@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import type { BomItem } from "@/lib/types";
 import { useWizardStore, useEstimate } from "@/lib/stores/wizard-store";
 import { useEmbed } from "@/lib/contexts/embed-context";
@@ -344,6 +344,12 @@ export function ReviewStep() {
   // no DB writes, so it works without auth during the presentation.
   const isContractorDemo = searchParams.get("demo") === "contractor";
   const [demoAction, setDemoAction] = useState<string | null>(null);
+  // Public showroom estimator (/estimate): generic homeowner next-step actions +
+  // lead capture/email, instead of dashboard save or contractor "submit to Wehrung's".
+  const pathname = usePathname();
+  const isPublic = pathname === "/estimate";
+  const isWehrungsDemo = searchParams.get("demo") === "wehrungs";
+  const [publicSent, setPublicSent] = useState<string | null>(null);
   const roleParam = searchParams.get("role") ?? "homeowner";
   const roleBase = ["homeowner", "contractor", "supplier"].includes(roleParam)
     ? roleParam
@@ -409,6 +415,44 @@ export function ReviewStep() {
         }
       });
     }
+  };
+
+  // Public showroom: capture the homeowner as a lead + notify (no DB/auth).
+  const submitPublicRequest = (service: string, label: string) => {
+    const rand = Math.random().toString(36).slice(2, 7).toUpperCase();
+    const lead = {
+      lead_id: `DM-${new Date().getFullYear()}-${rand}`,
+      created_date: new Date().toISOString(),
+      source: isWehrungsDemo ? "Wehrung's Showroom Demo" : "Website Estimator",
+      full_name: formData.contractorName || "",
+      email: formData.email || "",
+      phone: formData.phone || "",
+      city: formData.projectAddress || "",
+      address_optional: formData.projectAddress || "",
+      project_type: formData.deckType || "",
+      deck_size: `${formData.deckWidthFt}' x ${formData.deckProjectionFt}'`,
+      deck_height: `${formData.deckHeightIn}"`,
+      decking_brand: selectedBrand?.name ?? "",
+      decking_line: selectedCollection?.name ?? "",
+      decking_color: formData.deckingColor ?? "",
+      railing_type: formData.railingMaterial ? `${formData.railingColor} ${formData.railingMaterial}` : "None",
+      stairs: formData.stairSections.length > 0 ? `${formData.stairSections.length} section(s)` : "None",
+      add_ons: [],
+      estimated_material_range: "",
+      bom_status: isWehrungsDemo ? "demo" : "unlocked",
+      wants_pro_contact: service === "pro_contact",
+      wants_permit_ready_drawings: service === "permit",
+      wants_3d_renderings: service === "3d",
+      notes: `Requested: ${label}`,
+      status: "New Lead",
+    };
+    fetch("/api/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lead),
+    }).catch(() => {});
+    setPublicSent(label);
+    toast.success(`${label} — request submitted.`);
   };
 
   return (
@@ -681,8 +725,8 @@ export function ReviewStep() {
         })}
       </div>
 
-      {/* Save / Email CTA — hidden in contractor demo (actions live in Next Steps below) */}
-      <div className={`flex justify-center ${isContractorDemo ? "hidden" : ""}`}>
+      {/* Save / Email CTA — hidden in contractor demo + public showroom (actions below) */}
+      <div className={`flex justify-center ${isContractorDemo || isPublic ? "hidden" : ""}`}>
         {embed.isEmbed ? (
           <Button
             size="lg"
@@ -769,8 +813,8 @@ export function ReviewStep() {
         </div>
       ) : null}
 
-      {/* MVP Action Buttons — homeowner upsells (hidden in embed + contractor demo) */}
-      {!embed.isEmbed && !isContractorDemo && (
+      {/* MVP Action Buttons — homeowner upsells (hidden in embed + contractor demo + public) */}
+      {!embed.isEmbed && !isContractorDemo && !isPublic && (
         <div className="border-t-2 border-border pt-8 print:hidden">
           <h3 className="text-base font-semibold uppercase tracking-wide text-foreground mb-6">
             Next Steps
@@ -829,6 +873,73 @@ export function ReviewStep() {
               <span className="text-xs text-muted-foreground text-center">
                 $97 — expert plan review
               </span>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Public showroom next steps — homeowner lead-capture actions */}
+      {!embed.isEmbed && isPublic && (
+        <div className="border-t-2 border-border pt-8 print:hidden">
+          <h3 className="text-base font-semibold uppercase tracking-wide text-foreground mb-1">
+            Next Steps
+          </h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            Request help to take your project further — or download your material list.
+          </p>
+
+          {publicSent && (
+            <div className="mb-6 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span><span className="font-medium">{publicSent}</span> — request submitted. A representative will reach out to {formData.email || "you"} shortly.</span>
+            </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Button
+              variant="outline"
+              onClick={() => submitPublicRequest("pro_contact", "Pro Contact")}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <UserCheck className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Request Pro Contact</span>
+              <span className="text-xs text-muted-foreground text-center">Talk through materials, budget &amp; next steps</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => submitPublicRequest("pro_review", "Pro Review")}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <ClipboardCheck className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Request Pro Review</span>
+              <span className="text-xs text-muted-foreground text-center">Expert review of your plan &amp; materials</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => submitPublicRequest("permit", "Permit-Ready Drawings")}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <Ruler className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Request Permit-Ready Drawings</span>
+              <span className="text-xs text-muted-foreground text-center">$200 — drawings for your building dept</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => submitPublicRequest("3d", "3D Renderings")}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <Box className="h-8 w-8 text-primary" />
+              <span className="font-semibold text-base text-foreground">Request 3D Renderings</span>
+              <span className="text-xs text-muted-foreground text-center">Visualize your deck before you build</span>
+            </Button>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <Button variant="outline" onClick={handlePrint} className="gap-2">
+              <Printer className="h-4 w-4" /> Download Material List
+            </Button>
+            <Button variant="ghost" onClick={copyBom} className="gap-2 text-muted-foreground">
+              <Copy className="h-4 w-4" /> Copy Material List
             </Button>
           </div>
         </div>
