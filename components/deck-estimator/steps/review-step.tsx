@@ -895,7 +895,7 @@ export function ReviewStep() {
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-3">
             <Button
               variant="outline"
               onClick={() => submitPublicRequest("pro_contact", "Pro Contact")}
@@ -913,15 +913,6 @@ export function ReviewStep() {
               <ClipboardCheck className="h-8 w-8 text-primary" />
               <span className="font-semibold text-base text-foreground">Request Pro Review</span>
               <span className="text-xs text-muted-foreground text-center">Expert review of your plan &amp; materials</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => submitPublicRequest("permit", "Permit-Ready Drawings")}
-              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
-            >
-              <Ruler className="h-8 w-8 text-primary" />
-              <span className="font-semibold text-base text-foreground">Request Permit-Ready Drawings</span>
-              <span className="text-xs text-muted-foreground text-center">$200 — drawings for your building dept</span>
             </Button>
             <Button
               variant="outline"
