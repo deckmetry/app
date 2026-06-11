@@ -180,6 +180,34 @@
     margin: 0.5in;
   }
 
+  /* Never start a page with an orphaned title — keep headings glued to
+     what follows them, and never split a heading across pages. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    break-after: avoid-page;
+    break-inside: avoid-page;
+  }
+
+  /* Keep a minimum number of lines together at page boundaries */
+  p,
+  li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Repeat table header rows on every page and don't split rows */
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
   /* Show only print content */
   .print-content {
     display: block !important;

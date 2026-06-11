@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PrintButton } from "./print-button";
+import { PrintLetterhead } from "../_components/print-letterhead";
 import {
   Building2,
   Boxes,
@@ -36,6 +37,12 @@ const currency = (n: number) =>
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(n);
+
+const preparedDate = new Date().toLocaleDateString("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+});
 
 /* ----------------------------- MVP scope ----------------------------- */
 
@@ -177,9 +184,11 @@ const grandTotal = teamTotal + infraTotal;
 
 export default function RoadmapPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-14 print:py-6">
+    <div className="mx-auto max-w-5xl px-4 py-14 print:pt-16 print:pb-10">
+      <PrintLetterhead title="Supplier MVP — Roadmap &amp; Budget" date={preparedDate} />
+
       {/* Header */}
-      <header className="mb-12">
+      <div className="mb-12">
         <div className="flex items-start justify-between gap-4">
           <div>
             <Badge variant="secondary" className="mb-4">
@@ -198,7 +207,7 @@ export default function RoadmapPage() {
           web and mobile (Android &amp; iOS). This plan takes today&apos;s prototype to a launched,
           supplier-first MVP in four months, built and validated four-hands with a pilot supplier.
         </p>
-      </header>
+      </div>
 
       {/* At a glance */}
       <section className="mb-14 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -259,7 +268,7 @@ export default function RoadmapPage() {
 
       {/* 4-hands methodology */}
       <section className="mb-14">
-        <Card className="border-primary/30 bg-primary/5">
+        <Card className="border-primary/30 bg-primary/5 break-inside-avoid">
           <CardContent className="pt-6">
             <div className="flex items-center gap-2">
               <HandshakeIcon className="h-5 w-5 text-primary" />
