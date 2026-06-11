@@ -178,9 +178,25 @@ table.pm-table > tfoot {
     display: none !important;
   }
 
-  /* Reset page for printing */
+  /* Normalise all background colour tokens to pure white so every surface
+     in the printed document has a uniform page background. Brand accent
+     colours (--primary, --ring, charts) are intentionally preserved. */
+  html,
   body {
     background: white !important;
+  }
+
+  :root {
+    --background: white;
+    --card: white;
+    --muted: white;
+    --secondary: white;
+    --accent: white;
+    --popover: white;
+  }
+
+  /* Reset page for printing */
+  body {
     color: black !important;
     font-size: 11pt !important;
     line-height: 1.4 !important;
