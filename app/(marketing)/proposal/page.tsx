@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PrintButton } from "./print-button";
+import { PrintMarginWrapper } from "../_components/print-margin-wrapper";
 import {
   Hexagon,
   ClipboardList,
@@ -48,12 +49,12 @@ const inScope = [
   { icon: ListChecks, label: "Editable Bill of Materials — full CRUD on line items" },
   { icon: FileCheck2, label: "Estimate request & approval workflow" },
   { icon: Upload, label: "Price list / catalog upload (CSV)" },
-  { icon: Plug, label: "Architecture built for native integration with external systems (incl. Epicor)" },
-  { icon: Plug, label: "Deckmetry-exposed APIs for third-party integrations" },
+  { icon: Plug, label: "Deckmetry-exposed APIs — open endpoints for third-party integrations" },
 ];
 
 const outOfScope = [
-  "Building and operating a live connector to a specific third-party system (e.g., Epicor) — scoped and quoted separately in a follow-on phase",
+  "Native integrations with external systems (e.g., Epicor) — scoped and quoted separately in a follow-on phase",
+  "Native mobile app — planned for a subsequent phase after the pilot",
   "Custom features requested outside this roadmap — quoted separately as change orders",
 ];
 
@@ -194,7 +195,8 @@ const terms = [
 
 export default function ProposalPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-14 print:p-0">
+    <PrintMarginWrapper>
+      <div className="px-4 py-14 print:p-0">
 
       {/* Letterhead */}
       <div className="mb-8 flex items-center justify-between border-b pb-6">
@@ -221,8 +223,8 @@ export default function ProposalPage() {
         <p className="mt-4 max-w-3xl text-muted-foreground">
           A 4-month pilot to put Deckmetry&apos;s self-estimate tool, an editable bill of
           materials, and an estimate request/approval workflow in front of Wehrung&apos;s
-          customers — built and validated together, with the platform&apos;s data model and APIs
-          designed from day one to connect with Wehrung&apos;s existing systems, including Epicor.
+          customers — built and validated together. The platform exposes its own APIs from day
+          one, enabling future integrations with systems like Epicor in a follow-on phase.
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-4">
@@ -534,6 +536,8 @@ export default function ProposalPage() {
       <div className="border-t pt-6 text-center text-xs text-muted-foreground">
         Deckmetry · Pilot proposal prepared for Wehrung&apos;s · {preparedDate}
       </div>
-    </div>
+
+      </div>
+    </PrintMarginWrapper>
   );
 }

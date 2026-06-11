@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PrintButton } from "./print-button";
+import { PrintMarginWrapper } from "../_components/print-margin-wrapper";
 import {
   Hexagon,
   Building2,
@@ -159,7 +160,8 @@ const ongoingCosts: CostRow[] = [
 
 export default function LegalStructurePage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-14 print:p-0">
+    <PrintMarginWrapper>
+      <div className="px-4 py-14 print:p-0">
 
       {/* Letterhead */}
       <div className="mb-8 flex items-center justify-between border-b pb-6">
@@ -410,6 +412,8 @@ export default function LegalStructurePage() {
       <div className="border-t pt-6 text-center text-xs text-muted-foreground">
         Deckmetry · Internal legal structuring package · {preparedDate}
       </div>
-    </div>
+
+      </div>
+    </PrintMarginWrapper>
   );
 }

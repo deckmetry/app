@@ -149,6 +149,12 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Hide print-margin thead/tfoot spacers on screen */
+.pm-head,
+.pm-foot {
+  display: none;
+}
+
 /* Print Styles for BOM */
 @media print {
   /* Hide non-essential elements */
@@ -174,11 +180,23 @@
     print-color-adjust: exact !important;
   }
 
-  /* Page setup */
+  /* Page setup — margin:0 because we use the thead/tfoot table trick for
+     per-page margins on printable documents. BOM uses .print-content padding. */
   @page {
     size: letter portrait;
-    margin: 0.5in;
+    margin: 0;
   }
+
+  /* Per-page repeating margins via CSS table model.
+     thead/tfoot repeat on every printed page — the only reliable way to get
+     top/bottom spacing on all pages when the browser is set to "no margins". */
+  .pm-table  { display: table !important; width: 100% !important; border-collapse: collapse !important; }
+  .pm-head   { display: table-header-group !important; }
+  .pm-foot   { display: table-footer-group !important; }
+  .pm-body   { display: table-row-group !important; }
+  .pm-row    { display: table-row !important; }
+  .pm-cell   { display: table-cell !important; padding: 0 0.5in !important; }
+  .pm-spacer { display: table-cell !important; height: 0.5in !important; padding: 0 !important; }
 
   /* Never start a page with an orphaned title — keep headings glued to
      what follows them, and never split a heading across pages. */
@@ -208,12 +226,13 @@
     break-inside: avoid;
   }
 
-  /* Show only print content */
+  /* Show only print content — padding replaces the removed @page margin */
   .print-content {
     display: block !important;
     width: 100% !important;
     max-width: none !important;
-    padding: 0 !important;
+    padding: 0.5in !important;
+    box-sizing: border-box !important;
     margin: 0 !important;
   }
 
