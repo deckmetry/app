@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PrintButton } from "./print-button";
-import { PrintLetterhead } from "../_components/print-letterhead";
 import {
   Building2,
   Boxes,
@@ -184,8 +183,7 @@ const grandTotal = teamTotal + infraTotal;
 
 export default function RoadmapPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-14 print:pt-16 print:pb-10">
-      <PrintLetterhead title="Supplier MVP — Roadmap &amp; Budget" date={preparedDate} />
+    <div className="mx-auto max-w-5xl px-4 py-14 print:p-0">
 
       {/* Header */}
       <div className="mb-12">
@@ -473,9 +471,9 @@ export default function RoadmapPage() {
         </div>
       </section>
 
-      <footer className="border-t pt-6 text-center text-xs text-muted-foreground">
+      <div className="border-t pt-6 text-center text-xs text-muted-foreground">
         Deckmetry · Supplier MVP proposal · Prepared {new Date().getFullYear()}
-      </footer>
+      </div>
     </div>
   );
 }

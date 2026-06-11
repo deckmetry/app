@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PrintButton } from "./print-button";
-import { PrintLetterhead } from "../_components/print-letterhead";
 import {
   Hexagon,
   ClipboardList,
@@ -195,8 +194,7 @@ const terms = [
 
 export default function ProposalPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-14 print:pt-16 print:pb-10">
-      <PrintLetterhead title="Pilot Proposal — Wehrung's" date={preparedDate} />
+    <div className="mx-auto max-w-5xl px-4 py-14 print:p-0">
 
       {/* Letterhead */}
       <div className="mb-8 flex items-center justify-between border-b pb-6">
@@ -533,9 +531,9 @@ export default function ProposalPage() {
         </div>
       </section>
 
-      <footer className="border-t pt-6 text-center text-xs text-muted-foreground">
+      <div className="border-t pt-6 text-center text-xs text-muted-foreground">
         Deckmetry · Pilot proposal prepared for Wehrung&apos;s · {preparedDate}
-      </footer>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { PrintButton } from "./print-button";
-import { PrintLetterhead } from "../_components/print-letterhead";
 import {
   Hexagon,
   Building2,
@@ -160,8 +159,7 @@ const ongoingCosts: CostRow[] = [
 
 export default function LegalStructurePage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-14 print:pt-16 print:pb-10">
-      <PrintLetterhead title="Legal Structuring Package" date={preparedDate} />
+    <div className="mx-auto max-w-5xl px-4 py-14 print:p-0">
 
       {/* Letterhead */}
       <div className="mb-8 flex items-center justify-between border-b pb-6">
@@ -409,9 +407,9 @@ export default function LegalStructurePage() {
         </div>
       </section>
 
-      <footer className="border-t pt-6 text-center text-xs text-muted-foreground">
+      <div className="border-t pt-6 text-center text-xs text-muted-foreground">
         Deckmetry · Internal legal structuring package · {preparedDate}
-      </footer>
+      </div>
     </div>
   );
 }
