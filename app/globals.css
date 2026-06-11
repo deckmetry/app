@@ -216,7 +216,7 @@ table.pm-table > tfoot {
   table.pm-table td      { display: table-cell !important; border: none !important; }
   table.pm-table > tbody > tr > td { padding: 0 0.5in !important; }
   table.pm-table > thead > tr > td,
-  table.pm-table > tfoot > tr > td { height: 0.5in !important; padding: 0 !important; }
+  table.pm-table > tfoot > tr > td { height: 0.5in !important; padding: 0 !important; background: white !important; }
 
   /* Never start a page with an orphaned title — keep headings glued to
      what follows them, and never split a heading across pages. */
