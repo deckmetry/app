@@ -48,8 +48,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body className={`${plusJakartaSans.variable} ${geistMono.variable} font-sans antialiased`}>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className="print:bg-white">
+      <body className={`${plusJakartaSans.variable} ${geistMono.variable} font-sans antialiased print:bg-white`}>
         <Providers>
           {children}
         </Providers>

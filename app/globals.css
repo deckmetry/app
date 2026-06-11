@@ -178,21 +178,22 @@ table.pm-table > tfoot {
     display: none !important;
   }
 
-  /* Normalise all background colour tokens to pure white so every surface
-     in the printed document has a uniform page background. Brand accent
-     colours (--primary, --ring, charts) are intentionally preserved. */
+  /* Force pure white page background. The bg-background @layer base rule uses
+     a slightly off-white oklch value that prints as gray with print-color-adjust:exact.
+     We override both the element (html/body) and every Tailwind surface class. */
   html,
   body {
+    background-color: white !important;
     background: white !important;
   }
 
-  :root {
-    --background: white;
-    --card: white;
-    --muted: white;
-    --secondary: white;
-    --accent: white;
-    --popover: white;
+  .bg-background,
+  .bg-card,
+  .bg-muted,
+  .bg-secondary,
+  .bg-accent,
+  .bg-popover {
+    background-color: white !important;
   }
 
   /* Reset page for printing */
