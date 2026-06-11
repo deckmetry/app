@@ -1,13 +1,14 @@
 /**
- * Wraps printable document content in a CSS table structure so that
- * top/bottom margins repeat on every printed page — including when the
- * browser print dialog is set to "No margins". On screen it renders as
- * a normal block wrapper.
+ * Wraps printable document content in a real HTML table so that Chromium's
+ * print engine repeats the 0.5in top/bottom spacing on every page — even
+ * when the browser is set to "No margins".
  *
- * How it works: CSS table thead/tfoot are the only layout primitives
- * that genuinely repeat at the top/bottom of each printed page. The
- * .pm-head/.pm-foot spacer rows are hidden on screen (display:none via
- * globals.css) and become table-header/footer-group in print media.
+ * Why real <table>/<thead>/<tfoot>: Chromium only honours the per-page
+ * repeat behaviour for semantic table elements; div + display:table-header-group
+ * does not trigger the repeat in the PDF print engine.
+ *
+ * On screen, CSS in globals.css resets the table to a plain block and hides
+ * the spacer rows so the layout is identical to a normal div wrapper.
  */
 export function PrintMarginWrapper({
   children,
@@ -17,27 +18,29 @@ export function PrintMarginWrapper({
   className?: string;
 }) {
   return (
-    <div className={`pm-table mx-auto max-w-5xl${className ? ` ${className}` : ""}`}>
-      {/* Spacer row — repeats as top margin on every printed page */}
-      <div className="pm-head">
-        <div className="pm-row">
-          <div className="pm-spacer" />
-        </div>
-      </div>
+    <table
+      className={`pm-table mx-auto max-w-5xl${className ? ` ${className}` : ""}`}
+    >
+      {/* Repeating top-margin spacer on every printed page */}
+      <thead>
+        <tr>
+          <td />
+        </tr>
+      </thead>
 
       {/* Document content */}
-      <div className="pm-body">
-        <div className="pm-row">
-          <div className="pm-cell">{children}</div>
-        </div>
-      </div>
+      <tbody>
+        <tr>
+          <td>{children}</td>
+        </tr>
+      </tbody>
 
-      {/* Spacer row — repeats as bottom margin on every printed page */}
-      <div className="pm-foot">
-        <div className="pm-row">
-          <div className="pm-spacer" />
-        </div>
-      </div>
-    </div>
+      {/* Repeating bottom-margin spacer on every printed page */}
+      <tfoot>
+        <tr>
+          <td />
+        </tr>
+      </tfoot>
+    </table>
   );
 }
