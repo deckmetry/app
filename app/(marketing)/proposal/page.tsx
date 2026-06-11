@@ -386,7 +386,7 @@ export default function ProposalPage() {
       </section>
 
       {/* Investment */}
-      <section className="mb-12">
+      <section className="mb-12 break-inside-avoid">
         <h2 className="text-xl font-bold tracking-tight">Investment &amp; payment schedule</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           A fixed fee for the full pilot, billed in equal monthly installments.
@@ -427,7 +427,7 @@ export default function ProposalPage() {
       </section>
 
       {/* Pilot agreement & protections */}
-      <section className="mb-14">
+      <section className="mb-14 break-inside-avoid">
         <h2 className="text-xl font-bold tracking-tight">Pilot agreement &amp; protections</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Short-term commercial terms designed to give both Wehrung&apos;s and Deckmetry legal
