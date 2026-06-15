@@ -30,3 +30,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# max-agent — separate standalone project (github.com/renanffmaia/max-agent),
+# not part of Deckmetry. Lives in its own nested git repo; never track it here.
+/max-agent/
