@@ -46,7 +46,7 @@ const STOCK_LENGTHS = [8, 10, 12, 14, 16, 18, 20];
 const stockLen = (ft: number) => STOCK_LENGTHS.find((s) => s >= ft) ?? 20;
 const piecesFor = (totalLf: number, stock = 16) => Math.max(1, Math.ceil(totalLf / stock));
 
-interface Line { id: string; description: string; size: string; qty: number; unit: string; }
+interface Line { id: string; description: string; size: string; brand: string; color: string; qty: number; unit: string; }
 interface Group { title: string; lines: Line[]; }
 
 const n = (v: number, d = 0) => v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -114,39 +114,67 @@ export function RoofEstimator() {
       { stone_coverage_per_box_sqft: typeof stoneBoxCov === "number" ? stoneBoxCov : undefined, veneer_adhesive_coverage_sqft: adhesiveCov }
     ) : null;
 
-    const L = (description: string, size: string, qty: number, unit: string): Line => ({ id: uid(), description, size, qty, unit });
+    const L = (description: string, size: string, qty: number, unit: string, brand = "", color = ""): Line =>
+      ({ id: uid(), description, size, brand, color, qty, unit });
+    const ft = (x: number) => `${x}'`;
+    const ledgerPcs = attachment === "attached" ? Math.max(1, Math.ceil(geo.effective_roof_width_ft / 8)) : 0;
     const groups: Group[] = [];
 
+    groups.push({ title: "FOOTING", lines: [
+      L("Concrete 3000 psi", "80lb", 0, "bags"),
+      L("Sonotube 16\"", "12'", 0, "Each"),
+      L("Sonotube 24\"", "12'", 0, "Each"),
+    ]});
     groups.push({ title: "BEAM", lines: [
-      L("2x10", "16", piecesFor(beams, 16), "pcs"),
+      L("2x10", "16'", piecesFor(beams, 16), "Each"),
+      L("5.25x12 LVL beam", "", 0, "Each"),
+      L("3.5x16 LVL beam", "", 0, "Each"),
+      L("5.5x16 LVL beam", "", 0, "Each"),
+      L("5.25x16 PSL beam", "", 0, "Each"),
     ]});
     groups.push({ title: "RAFTERS", lines: [
-      L(raf.recommended_rafter_size, String(stockLen(raf.rafter_length_ft)), raf.rafter_quantity, "pcs"),
+      L(raf.recommended_rafter_size, ft(stockLen(raf.rafter_length_ft)), raf.rafter_quantity, "Each"),
     ]});
     groups.push({ title: "FASCIA", lines: [
-      L("1x8 PVC", "16", piecesFor(perim, 16), "pcs"),
-      L("2x6", "16", piecesFor(perim, 16), "pcs"),
+      L("1x8 PVC", "16'", piecesFor(perim, 16), "Each", "", "White"),
+      L("2x6", "16'", piecesFor(perim, 16), "Each"),
+      L("1x6 Azek Captive PVC", "16'", 0, "Each", "Azek", "Black"),
+      L("1x12 Azek Captive PVC", "16'", 0, "Each", "Azek", "Black"),
+      L("1x8 Composite", "12'", 0, "Each", "Trex Select", ""),
+      L("Fascia screws", "", 0, "box", "Trex Enhance", ""),
     ]});
     groups.push({ title: "SHEATHING", lines: [
-      L("4x8 sheet", "", sh.sheathing_quantity, "sheets"),
+      L("1/2\" CDX plywood", "4x8", sh.sheathing_quantity, "Each"),
     ]});
     groups.push({ title: "HARDWARE", lines: [
-      L("Hurricane / rafter tie", "", raf.rafter_quantity, "pcs"),
-      L("Structural screws", "", 1, "lot"),
-      ...(attachment === "attached" ? [L("Ledger connection hardware", "", 1, "lot")] : []),
+      L("Hurricane ties H2.5A", "", raf.rafter_quantity, "Each"),
+      L("Rafter hangers", "2x8", 0, "Each"),
+      L("Beam hangers HUC210-3", "", 0, "Each"),
+      L("ABU66Z post base", "", 0, "Each"),
+      L("AC6Z post cap", "", 0, "Each"),
+      L("4\" flat head structural screws", "250 ct", ledgerPcs > 0 ? 1 : 1, "Bucket"),
+      L("Ledger flashing drip edge", "8'", ledgerPcs, "Each"),
+      L("12\" ledger flashing tape", "50'", attachment === "attached" ? 1 : 0, "Each"),
+      L("Galvanized ridge strap", "50'", 0, "Each"),
+      L("3\" galv. collated framing nails", "2000 ct", 0, "box"),
     ]});
-    const ceiling: Line[] = [L(`ChamClad — ${chamColor}`, String(r.recommended_panel_length_ft), panels, "panels")];
-    if (r.seam_required && r.h_channel_quantity > 0) ceiling.push(L("H-channel", String(hStock), r.h_channel_quantity, "pcs"));
+    const ceiling: Line[] = [
+      L("ChamClad 1x6 solid soffit", ft(r.recommended_panel_length_ft), panels, "Each", "ChamClad", chamColor),
+      L("ChamClad J-Channel", ft(r.recommended_panel_length_ft), 0, "Each", "ChamClad", chamColor),
+      L("ChamClad screws", "", 0, "box", "ChamClad"),
+      L("ChamClad column wrap", "10'", 0, "Each", "ChamClad"),
+    ];
+    if (r.seam_required && r.h_channel_quantity > 0) ceiling.push(L("H-channel", ft(hStock), r.h_channel_quantity, "Each", "ChamClad", chamColor));
     groups.push({ title: "ROOF CEILING", lines: ceiling });
 
     if (asp) {
       const roof: Line[] = [
         L("Shingle bundles (15% waste)", "", asp.shingle_bundle_quantity, "bundles"),
         L("Synthetic underlayment", "", asp.underlayment_quantity ?? 0, "rolls"),
-        L("Ice & water shield", "", Math.ceil(asp.ice_water_total_lf), "lin ft"),
-        L("Aluminum drip edge (10% waste)", String(dripStock), asp.drip_edge_quantity ?? 0, "pcs"),
+        L("Grace ice & water shield", "", Math.ceil(asp.ice_water_total_lf), "lin ft"),
+        L("Aluminum drip edge (10% waste)", ft(dripStock), asp.drip_edge_quantity ?? 0, "Each"),
         L("Starter shingle strip (10% waste)", "", Math.ceil(asp.starter_order_lf), "lin ft"),
-        L("Galvanized coil roofing nails", "", asp.roofing_nail_boxes, "boxes"),
+        L("Galvanized coil roofing nails", "", asp.roofing_nail_boxes, "box"),
         L("Exterior roofing sealant", "", 1, "box"),
       ];
       if (asp.ridge_cap_lf > 0) roof.splice(5, 0, L("Ridge cap shingles", "", Math.ceil(asp.ridge_cap_lf), "lin ft"));
@@ -156,24 +184,29 @@ export function RoofEstimator() {
       groups.push({ title: "ROOFING", lines: [L(metalNotes || "Metal roofing — manual (coming later)", "", 0, "—")] });
     }
 
+    groups.push({ title: "ELECTRICAL", lines: [
+      L("Tru-Scapes Dot Light TS-15DOT-SS", "", 0, "Each"),
+      L("Post Cap Light TS-C125", "", 0, "Each", "", "TBD"),
+    ]});
+
     const opt: Line[] = [];
     if (includeGutters) opt.push(L("Gutters & downspouts", "", perim, "lin ft"));
     if (includeRidgeVent && roofType === "gable") opt.push(L("Ridge vent", "", Math.ceil(geo.effective_roof_length_ft), "lin ft"));
-    if (optionalNotes) opt.push(L(optionalNotes, "", 1, "ea"));
+    if (optionalNotes) opt.push(L(optionalNotes, "", 1, "Each"));
     if (opt.length === 0) opt.push(L("No optional items", "", 0, "—"));
     groups.push({ title: "OPTIONAL ITEMS", lines: opt });
 
     if (fp) {
       const f: Line[] = [
-        L("20-ga metal stud 3.5\"", "10", fp.metal_stud_quantity, "pcs"),
-        L("20-ga metal track 3.5\" (10% waste)", "10", fp.metal_track_quantity, "pcs"),
-        L("3x5 cement board ½\" (10% waste)", "", fp.cement_board_quantity, "boards"),
-        L("Cement board screws", "", fp.cement_board_screw_box_quantity, "boxes"),
-        L(`MSI stone veneer${fp.stone_box_quantity === null ? " (enter box coverage)" : ""}`, "", fp.stone_box_quantity ?? 0, "boxes"),
-        L("Stone veneer adhesive", "", fp.veneer_adhesive_quantity ?? 0, "units"),
+        L("20-ga metal stud 3.5\"", "10'", fp.metal_stud_quantity, "Each"),
+        L("20-ga metal track 3.5\" (10% waste)", "10'", fp.metal_track_quantity, "Each"),
+        L("3x5 cement board ½\" (10% waste)", "", fp.cement_board_quantity, "Each"),
+        L("Cement board screws", "", fp.cement_board_screw_box_quantity, "box"),
+        L(`MSI stone veneer${fp.stone_box_quantity === null ? " (enter box coverage)" : ""}`, "", fp.stone_box_quantity ?? 0, "box", "MSI", "TBC"),
+        L("Stone veneer adhesive", "", fp.veneer_adhesive_quantity ?? 0, "Each"),
       ];
-      if (fp.fireplace_stone_piece_quantity > 0) f.push(L(`Fireplace stone 2x12 (${fpStonePiece.replace("_", " & ")})`, "6", fp.fireplace_stone_piece_quantity, "pcs"));
-      f.push(L("Ventless gas fireplace appliance", "", 1, "ea"));
+      if (fp.fireplace_stone_piece_quantity > 0) f.push(L(`Fireplace stone 2x12 (${fpStonePiece.replace("_", " & ")})`, "6'", fp.fireplace_stone_piece_quantity, "Each", "", "TBC"));
+      f.push(L("Ventless gas fireplace appliance", "", 1, "Each"));
       groups.push({ title: "FIREPLACE (OPTIONAL)", lines: f });
     }
     return groups;
@@ -184,7 +217,7 @@ export function RoofEstimator() {
   const updateLine = (gi: number, li: number, field: keyof Line, val: string | number) =>
     setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, lines: g.lines.map((l, j) => (j !== li ? l : { ...l, [field]: val })) })));
   const addLine = (gi: number) =>
-    setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, lines: [...g.lines, { id: uid(), description: "", size: "", qty: 0, unit: "" }] })));
+    setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, lines: [...g.lines, { id: uid(), description: "", size: "", brand: "", color: "", qty: 0, unit: "" }] })));
   const removeLine = (gi: number, li: number) =>
     setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, lines: g.lines.filter((_, j) => j !== li) })));
 
@@ -359,7 +392,7 @@ export function RoofEstimator() {
           <p className="mb-3 text-xs text-muted-foreground print:hidden">Edit any field, add or remove lines. &ldquo;Regenerate&rdquo; rebuilds from the inputs above and replaces manual edits.</p>
 
           <datalist id="bom-lengths">
-            {STOCK_LENGTHS.map((s) => <option key={s} value={s} />)}
+            {STOCK_LENGTHS.map((s) => <option key={s} value={`${s}'`} />)}
           </datalist>
 
           <div className="space-y-4">
@@ -369,31 +402,40 @@ export function RoofEstimator() {
                   <span>{grp.title}</span>
                   <button onClick={() => addLine(gi)} className="flex items-center gap-1 rounded-md bg-white/60 px-2 py-1 text-xs font-semibold hover:bg-white print:hidden"><Plus className="h-3 w-3" /> Add item</button>
                 </div>
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-sm">
                   <thead>
                     <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
                       <th className="px-3 py-1.5 font-semibold">Description</th>
-                      <th className="px-3 py-1.5 font-semibold w-28">Length (ft)</th>
-                      <th className="px-3 py-1.5 font-semibold w-20 text-right">Qty</th>
-                      <th className="px-3 py-1.5 font-semibold w-24">Unit</th>
+                      <th className="px-3 py-1.5 font-semibold w-24">Length (ft)</th>
+                      <th className="px-3 py-1.5 font-semibold w-32">Brand</th>
+                      <th className="px-3 py-1.5 font-semibold w-28">Color</th>
+                      <th className="px-3 py-1.5 font-semibold w-16 text-right">Qty</th>
+                      <th className="px-3 py-1.5 font-semibold w-20">Unit</th>
                       <th className="px-2 py-1.5 w-8 print:hidden"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {grp.lines.map((l, li) => (
+                    {grp.lines.map((l, li) => {
+                      const cell = "w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0";
+                      return (
                       <tr key={l.id} className="border-b last:border-0">
-                        <td className="px-2 py-1"><input value={l.description} onChange={(e) => updateLine(gi, li, "description", e.target.value)} className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
-                        <td className="px-2 py-1"><input list="bom-lengths" value={l.size} onChange={(e) => updateLine(gi, li, "size", e.target.value)} placeholder="—" className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
-                        <td className="px-2 py-1"><input type="number" value={l.qty} onChange={(e) => updateLine(gi, li, "qty", e.target.value === "" ? 0 : Number(e.target.value))} className="w-full rounded border-transparent bg-transparent px-2 py-1 text-right tabular-nums hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
-                        <td className="px-2 py-1"><input value={l.unit} onChange={(e) => updateLine(gi, li, "unit", e.target.value)} className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
+                        <td className="px-2 py-1"><input value={l.description} onChange={(e) => updateLine(gi, li, "description", e.target.value)} className={cell} /></td>
+                        <td className="px-2 py-1"><input list="bom-lengths" value={l.size} onChange={(e) => updateLine(gi, li, "size", e.target.value)} placeholder="—" className={cell} /></td>
+                        <td className="px-2 py-1"><input value={l.brand} onChange={(e) => updateLine(gi, li, "brand", e.target.value)} placeholder="—" className={cell} /></td>
+                        <td className="px-2 py-1"><input value={l.color} onChange={(e) => updateLine(gi, li, "color", e.target.value)} placeholder="—" className={cell} /></td>
+                        <td className="px-2 py-1"><input type="number" value={l.qty} onChange={(e) => updateLine(gi, li, "qty", e.target.value === "" ? 0 : Number(e.target.value))} className={cn(cell, "text-right tabular-nums")} /></td>
+                        <td className="px-2 py-1"><input value={l.unit} onChange={(e) => updateLine(gi, li, "unit", e.target.value)} className={cell} /></td>
                         <td className="px-2 py-1 text-center print:hidden"><button onClick={() => removeLine(gi, li)} className="text-muted-foreground hover:text-destructive" title="Remove"><Trash2 className="h-4 w-4" /></button></td>
                       </tr>
-                    ))}
+                      );
+                    })}
                     {grp.lines.length === 0 && (
-                      <tr><td colSpan={5} className="px-3 py-3 text-center text-xs text-muted-foreground">No items — use &ldquo;Add item&rdquo;.</td></tr>
+                      <tr><td colSpan={7} className="px-3 py-3 text-center text-xs text-muted-foreground">No items — use &ldquo;Add item&rdquo;.</td></tr>
                     )}
                   </tbody>
                 </table>
+                </div>
               </div>
             ))}
           </div>
