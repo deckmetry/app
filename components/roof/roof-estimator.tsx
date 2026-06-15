@@ -15,18 +15,17 @@ import {
 
 type RoofingMaterial = "asphalt" | "metal";
 
-// ChamClad ceiling/soffit panel finishes. Swatches approximate the photo set;
-// drop real images into /public/chamclad and swap `swatch` for `img` later.
+// ChamClad ceiling/soffit panel finishes — official colors + photos in /public/chamclad.
 const CHAMCLAD_BRAND = "ChamClad";
-const CHAMCLAD_COLORS: { name: string; swatch: string }[] = [
-  { name: "Whitewashed Oak", swatch: "#dad6cd" },
-  { name: "Natural Oak", swatch: "#b9986f" },
-  { name: "Honey", swatch: "#b06a36" },
-  { name: "Walnut", swatch: "#6a4126" },
-  { name: "Rustic Oak", swatch: "#a9763f" },
-  { name: "Light Oak", swatch: "#d9b481" },
-  { name: "Sand Oak", swatch: "#dcc197" },
-  { name: "Driftwood Grey", swatch: "#8a7a6c" },
+const CHAMCLAD_COLORS: { name: string; img: string }[] = [
+  { name: "Atlantic White", img: "/chamclad/Atlantic-White.jpeg" },
+  { name: "Sunbleached Oak", img: "/chamclad/Sunbleached-Oak.jpg" },
+  { name: "Sugar Maple", img: "/chamclad/Sugar-Maple.jpg" },
+  { name: "Manhattan Natural Oak", img: "/chamclad/Manhattan-Natural-Oak.jpg" },
+  { name: "Barrel Oak", img: "/chamclad/Barrel-Oak.jpeg" },
+  { name: "Chai Cedar", img: "/chamclad/Chai-Cedar.jpg" },
+  { name: "Toffee", img: "/chamclad/Toffee.jpg" },
+  { name: "Cinnamon Walnut", img: "/chamclad/Cinnamon-Walnut-Film-Sample.jpg" },
 ];
 
 interface BomLine { id: string; item: string; calc: number; unit: string; note?: string; }
@@ -53,8 +52,7 @@ export function RoofEstimator() {
   const [valleyLf, setValleyLf] = useState(0);
   const [wallLf, setWallLf] = useState(0);
   const [metalNotes, setMetalNotes] = useState("");
-  // Ceiling / ChamClad
-  const [includeChamclad, setIncludeChamclad] = useState(false);
+  // Ceiling / ChamClad — always included
   const [chamColor, setChamColor] = useState(CHAMCLAD_COLORS[0].name);
   const [panelCov, setPanelCov] = useState(1);
   const [hStock, setHStock] = useState(12);
@@ -85,7 +83,7 @@ export function RoofEstimator() {
   const sh = useMemo(() => sheathing(input, sheathingWaste), [input, sheathingWaste]);
   const beams = useMemo(() => beamTotalLf(input), [input]);
   const perim = useMemo(() => roofPerimeterLf(input), [input]);
-  const cc = useMemo(() => (includeChamclad ? chamClad(input, { panel_coverage_width_ft: panelCov, h_channel_stock_length_ft: hStock }) : null), [input, includeChamclad, panelCov, hStock]);
+  const cc = useMemo(() => chamClad(input, { panel_coverage_width_ft: panelCov, h_channel_stock_length_ft: hStock }), [input, panelCov, hStock]);
   const asp = useMemo(() => (roofing === "asphalt" ? asphaltShingles(input, {
     underlayment_roll_coverage_sqft: underlaymentCov, drip_edge_stock_length_ft: dripStock,
     ice_water_valley_length_ft: valleyLf, ice_water_wall_intersection_length_ft: wallLf,
@@ -237,14 +235,12 @@ export function RoofEstimator() {
           </div>
         </details>
 
-        {/* Roof Ceiling — ChamClad brand + color cards */}
+        {/* Roof Ceiling — ChamClad brand + color cards (always included) */}
         <Card className="print:hidden">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base">Roof Ceiling</CardTitle>
-            <Toggle on={includeChamclad} onClick={() => setIncludeChamclad((v) => !v)} />
+          <CardHeader>
+            <CardTitle className="text-base">Roof Ceiling — ChamClad</CardTitle>
           </CardHeader>
-          {includeChamclad && (
-            <CardContent className="space-y-5">
+          <CardContent className="space-y-5">
               {/* Brand */}
               <div>
                 <Label className="text-xs">Brand</Label>
@@ -261,7 +257,8 @@ export function RoofEstimator() {
                     const active = chamColor === c.name;
                     return (
                       <button key={c.name} onClick={() => setChamColor(c.name)} className={cn("overflow-hidden rounded-xl border-2 text-left transition-all", active ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40")}>
-                        <div className="h-16 w-full" style={{ background: `linear-gradient(180deg, ${c.swatch}, ${c.swatch}cc)` }} />
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.img} alt={c.name} className="h-16 w-full object-cover" />
                         <div className="flex items-center justify-between px-2.5 py-2">
                           <span className="text-xs font-semibold leading-tight">{c.name}</span>
                           {active && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary" />}
@@ -270,14 +267,12 @@ export function RoofEstimator() {
                     );
                   })}
                 </div>
-                <p className="mt-2 text-[11px] text-muted-foreground">Swatches are approximate — replace with ChamClad photos in /public/chamclad when ready.</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Num label="Panel coverage (ft)" value={panelCov} onChange={setPanelCov} step={0.5} />
                 <Num label="H-channel stock (ft)" value={hStock} onChange={setHStock} />
               </div>
             </CardContent>
-          )}
         </Card>
 
         {/* Roofing */}
