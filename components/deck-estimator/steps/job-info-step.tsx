@@ -6,7 +6,7 @@ import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { FieldGroup, Field, FieldLabel } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import type { ProjectScope } from "@/lib/types";
-import { User, Mail, Phone, MapPin, Square, Triangle, Layers, CheckCircle2 } from "lucide-react";
+import { MapPin, CalendarClock, Square, Triangle, Layers, CheckCircle2 } from "lucide-react";
 
 const SCOPE_OPTIONS: { id: ProjectScope; title: string; desc: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "deck", title: "Deck only", desc: "Framing, decking, railing", icon: Square },
@@ -59,67 +59,20 @@ export function JobInfoStep() {
       <hr />
 
       <FieldGroup>
-        <div className="grid gap-6 sm:grid-cols-2">
-          <Field>
-            <FieldLabel className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              Full Name
-            </FieldLabel>
-            <Input
-              placeholder="Jane Smith"
-              value={formData.contractorName}
-              onChange={(e) => updateFormData({ contractorName: e.target.value })}
-              required
-            />
-          </Field>
+        <Field>
+          <FieldLabel>Project Name</FieldLabel>
+          <Input
+            placeholder="e.g., Smith Backyard Deck"
+            value={formData.projectName}
+            onChange={(e) => updateFormData({ projectName: e.target.value })}
+            required
+          />
+        </Field>
 
-          <Field>
-            <FieldLabel className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              Email Address
-            </FieldLabel>
-            <Input
-              type="email"
-              placeholder="you@example.com"
-              value={formData.email}
-              onChange={(e) => updateFormData({ email: e.target.value })}
-              required
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              Phone Number
-            </FieldLabel>
-            <Input
-              type="tel"
-              placeholder="(555) 123-4567"
-              value={formData.phone}
-              onChange={(e) => updateFormData({ phone: e.target.value })}
-              required
-            />
-          </Field>
-
-          <Field>
-            <FieldLabel>Project Name</FieldLabel>
-            <Input
-              placeholder="e.g., Backyard Deck"
-              value={formData.projectName}
-              onChange={(e) => updateFormData({ projectName: e.target.value })}
-              required
-            />
-          </Field>
-        </div>
-      </FieldGroup>
-
-      <hr />
-
-      <FieldGroup>
         <Field>
           <FieldLabel className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-muted-foreground" />
-            Project Address
+            Address
           </FieldLabel>
           <AddressAutocomplete
             value={formData.projectAddress}
@@ -129,6 +82,17 @@ export function JobInfoStep() {
           />
         </Field>
 
+        <Field>
+          <FieldLabel className="flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            Delivery Request
+          </FieldLabel>
+          <Input
+            type="date"
+            value={formData.requestedDeliveryDate}
+            onChange={(e) => updateFormData({ requestedDeliveryDate: e.target.value })}
+          />
+        </Field>
       </FieldGroup>
     </div>
   );
