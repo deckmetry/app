@@ -408,6 +408,43 @@ table.pm-table > tfoot {
     font-family: monospace !important;
   }
 
+  /* Roof Estimator BOM: values live in editable inputs (no sibling
+     .print-value spans), so the global "table input { display:none }" rule
+     blanks the whole table. Re-show those inputs as plain text in print. */
+  .roof-bom input {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+    color: black !important;
+    padding: 0 !important;
+    font: inherit !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+  .roof-bom input[type="number"]::-webkit-outer-spin-button,
+  .roof-bom input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none !important;
+    margin: 0 !important;
+  }
+  /* Section-title input sits in a colored header div, not a table. */
+  .roof-bom .roof-bom-section-title {
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+  }
+  /* Reset the generic nth-child(3) qty styling — this table's Qty is col 5. */
+  .roof-bom table td:nth-child(3),
+  .roof-bom table th:nth-child(3) {
+    text-align: left !important;
+    font-family: inherit !important;
+    font-weight: inherit !important;
+  }
+  .roof-bom table td:nth-child(5) input {
+    text-align: right !important;
+    font-family: monospace !important;
+    font-weight: 600 !important;
+  }
+
   /* Footer */
   .print-footer {
     margin-top: 24pt !important;
