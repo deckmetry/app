@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Hexagon, Printer, Home, Footprints, Flame, PanelTop, CheckCircle2 } from "lucide-react";
+import { Hexagon, Printer, Home, Footprints, Flame, PanelTop, CheckCircle2, Plus, Trash2, RotateCcw } from "lucide-react";
 import {
   beamTotalLf, roofGeometry, rafters, roofPerimeterLf, sheathing, chamClad,
   asphaltShingles, fireplace,
@@ -15,7 +15,6 @@ import {
 
 type RoofingMaterial = "asphalt" | "metal";
 
-// ChamClad ceiling/soffit panel finishes — official colors + photos in /public/chamclad.
 const CHAMCLAD_BRAND = "ChamClad";
 const CHAMCLAD_COLORS: { name: string; img: string }[] = [
   { name: "Atlantic White", img: "/chamclad/Atlantic-White.jpeg" },
@@ -28,12 +27,28 @@ const CHAMCLAD_COLORS: { name: string; img: string }[] = [
   { name: "Cinnamon Walnut", img: "/chamclad/Cinnamon-Walnut-Film-Sample.jpg" },
 ];
 
-interface BomLine { id: string; item: string; calc: number; unit: string; note?: string; }
-interface BomGroup { title: string; lines: BomLine[]; }
+// distinct color per BOM section header
+const GROUP_COLORS: Record<string, string> = {
+  BEAM: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+  RAFTERS: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-200",
+  FASCIA: "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-200",
+  SHEATHING: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200",
+  HARDWARE: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200",
+  "ROOF CEILING": "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200",
+  ROOFING: "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
+  "OPTIONAL ITEMS": "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-200",
+  "FIREPLACE (OPTIONAL)": "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
+};
+const groupColor = (t: string) => GROUP_COLORS[t] ?? "bg-muted text-foreground";
+
+interface Line { id: string; description: string; size: string; qty: number; unit: string; }
+interface Group { title: string; lines: Line[]; }
 
 const n = (v: number, d = 0) => v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const uid = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `l-${Math.random().toString(36).slice(2)}`);
 
 export function RoofEstimator() {
+  // Project
   const [projectName, setProjectName] = useState("");
   const [address, setAddress] = useState("");
   const [deliveryDate, setDeliveryDate] = useState("");
@@ -52,11 +67,11 @@ export function RoofEstimator() {
   const [valleyLf, setValleyLf] = useState(0);
   const [wallLf, setWallLf] = useState(0);
   const [metalNotes, setMetalNotes] = useState("");
-  // Ceiling / ChamClad — always included
+  // Roof ceiling (always included)
   const [chamColor, setChamColor] = useState(CHAMCLAD_COLORS[0].name);
   const [panelCov, setPanelCov] = useState(1);
   const [hStock, setHStock] = useState(12);
-  // Optional items
+  // Optional
   const [includeGutters, setIncludeGutters] = useState(false);
   const [includeRidgeVent, setIncludeRidgeVent] = useState(false);
   const [optionalNotes, setOptionalNotes] = useState("");
@@ -69,98 +84,104 @@ export function RoofEstimator() {
   const [stoneBoxCov, setStoneBoxCov] = useState<number | "">("");
   const [adhesiveCov, setAdhesiveCov] = useState(75);
 
-  const [overrides, setOverrides] = useState<Record<string, string>>({});
-  const setOverride = (id: string, v: string) => setOverrides((o) => ({ ...o, [id]: v }));
-  const finalOf = (l: BomLine) => { const ov = overrides[l.id]; return ov !== undefined && ov !== "" ? Number(ov) : l.calc; };
-
   const input: RoofInput = useMemo(() => ({
     roof_type: roofType, roof_width_ft: width, roof_length_ft: length, roof_pitch_rise: pitch,
     attachment, overhangs: { side_overhang_left_ft: oL, side_overhang_right_ft: oR, front_overhang_ft: oF, rear_overhang_ft: oRear },
   }), [roofType, width, length, pitch, attachment, oL, oR, oF, oRear]);
 
   const geo = useMemo(() => roofGeometry(input), [input]);
-  const raf = useMemo(() => rafters(input), [input]);
   const sh = useMemo(() => sheathing(input, sheathingWaste), [input, sheathingWaste]);
-  const beams = useMemo(() => beamTotalLf(input), [input]);
-  const perim = useMemo(() => roofPerimeterLf(input), [input]);
-  const cc = useMemo(() => chamClad(input, { panel_coverage_width_ft: panelCov, h_channel_stock_length_ft: hStock }), [input, panelCov, hStock]);
-  const asp = useMemo(() => (roofing === "asphalt" ? asphaltShingles(input, {
-    underlayment_roll_coverage_sqft: underlaymentCov, drip_edge_stock_length_ft: dripStock,
-    ice_water_valley_length_ft: valleyLf, ice_water_wall_intersection_length_ft: wallLf,
-  }) : null), [input, roofing, underlaymentCov, dripStock, valleyLf, wallLf]);
-  const fp = useMemo(() => (includeFp ? fireplace(
-    { fireplace_total_width_ft: fpW, fireplace_total_height_ft: fpH, fireplace_total_depth_ft: fpD, fireplace_opening_width_ft: fpOW, fireplace_opening_height_ft: fpOH, stone_sides: fpSides, stone_piece_selection: fpStonePiece },
-    { stone_coverage_per_box_sqft: typeof stoneBoxCov === "number" ? stoneBoxCov : undefined, veneer_adhesive_coverage_sqft: adhesiveCov }
-  ) : null), [includeFp, fpW, fpH, fpD, fpOW, fpOH, fpSides, fpStonePiece, stoneBoxCov, adhesiveCov]);
 
-  // ── Roof BOM groups (exact order requested) ──
-  const groups: BomGroup[] = useMemo(() => {
-    const g: BomGroup[] = [];
-    g.push({ title: "BEAM", lines: [
-      { id: "beam", item: roofType === "gable" ? "Beam stock (width + length × 3)" : "Beam stock", calc: beams, unit: "lin ft", note: "Original dimensions, no overhang" },
+  // Build the seed BOM from the current calculations
+  const seed: Group[] = useMemo(() => {
+    const raf = rafters(input);
+    const beams = beamTotalLf(input);
+    const perim = Math.ceil(roofPerimeterLf(input));
+    const cc = chamClad(input, { panel_coverage_width_ft: panelCov, h_channel_stock_length_ft: hStock });
+    const r = cc.recommended;
+    const panels = r.rows * r.segments_per_row;
+    const asp = roofing === "asphalt" ? asphaltShingles(input, {
+      underlayment_roll_coverage_sqft: underlaymentCov, drip_edge_stock_length_ft: dripStock,
+      ice_water_valley_length_ft: valleyLf, ice_water_wall_intersection_length_ft: wallLf,
+    }) : null;
+    const fp = includeFp ? fireplace(
+      { fireplace_total_width_ft: fpW, fireplace_total_height_ft: fpH, fireplace_total_depth_ft: fpD, fireplace_opening_width_ft: fpOW, fireplace_opening_height_ft: fpOH, stone_sides: fpSides, stone_piece_selection: fpStonePiece },
+      { stone_coverage_per_box_sqft: typeof stoneBoxCov === "number" ? stoneBoxCov : undefined, veneer_adhesive_coverage_sqft: adhesiveCov }
+    ) : null;
+
+    const L = (description: string, size: string, qty: number, unit: string): Line => ({ id: uid(), description, size, qty, unit });
+    const groups: Group[] = [];
+
+    groups.push({ title: "BEAM", lines: [
+      L(roofType === "gable" ? "Beam stock (width + length × 3)" : "Beam stock", "2x10", Math.round(beams), "lin ft"),
     ]});
-    g.push({ title: "RAFTERS", lines: [
-      { id: "rafter", item: `${raf.recommended_rafter_size} rafters @ ${n(raf.rafter_length_ft, 1)}′`, calc: raf.rafter_quantity, unit: "pcs", note: roofType === "gable" ? `${(raf as any).rafters_per_side} per side × 2` : "16″ OC" },
+    groups.push({ title: "RAFTERS", lines: [
+      L("Rafters", `${raf.recommended_rafter_size} @ ${n(raf.rafter_length_ft, 1)}'`, raf.rafter_quantity, "pcs"),
     ]});
-    g.push({ title: "FASCIA", lines: [
-      { id: "fascia", item: "1×8 fascia", calc: Math.ceil(perim), unit: "lin ft" },
-      { id: "perim2x6", item: "2×6 perimeter framing", calc: Math.ceil(perim), unit: "lin ft" },
+    groups.push({ title: "FASCIA", lines: [
+      L("Fascia", "1x8", perim, "lin ft"),
+      L("Perimeter framing", "2x6", perim, "lin ft"),
     ]});
-    g.push({ title: "SHEATHING", lines: [
-      { id: "sheath", item: `Roof sheathing (incl. +${sheathingWaste} waste)`, calc: sh.sheathing_quantity, unit: "sheets" },
+    groups.push({ title: "SHEATHING", lines: [
+      L(`Roof sheathing (+${sheathingWaste} waste)`, "4×8 sheet", sh.sheathing_quantity, "sheets"),
     ]});
-    g.push({ title: "HARDWARE", lines: [
-      { id: "ties", item: "Hurricane / rafter ties", calc: raf.rafter_quantity, unit: "pcs" },
-      { id: "structscrew", item: "Structural screws", calc: 1, unit: "lot" },
-      ...(attachment === "attached" ? [{ id: "ledger_hw", item: "Ledger connection hardware", calc: 1, unit: "lot" }] : []),
+    groups.push({ title: "HARDWARE", lines: [
+      L("Hurricane / rafter ties", "", raf.rafter_quantity, "pcs"),
+      L("Structural screws", "", 1, "lot"),
+      ...(attachment === "attached" ? [L("Ledger connection hardware", "", 1, "lot")] : []),
     ]});
-    if (cc) {
-      const r = cc.recommended;
-      const panels = r.rows * r.segments_per_row;
-      const lines: BomLine[] = [
-        { id: "cc_panel", item: `${CHAMCLAD_BRAND} ${r.recommended_panel_length_ft}′ panel — ${chamColor}`, calc: panels, unit: "panels", note: `${r.seam_required ? "Seam required" : "Seam-free"} · Option ${r.label}` },
+    const ceiling: Line[] = [L(`${CHAMCLAD_BRAND} panel — ${chamColor}`, `${r.recommended_panel_length_ft}'`, panels, "panels")];
+    if (r.seam_required && r.h_channel_quantity > 0) ceiling.push(L("H-channel", `${hStock}'`, r.h_channel_quantity, "pcs"));
+    groups.push({ title: "ROOF CEILING", lines: ceiling });
+
+    if (asp) {
+      const roof: Line[] = [
+        L("Shingle bundles (15% waste)", "", asp.shingle_bundle_quantity, "bundles"),
+        L("Synthetic underlayment", "", asp.underlayment_quantity ?? 0, "rolls"),
+        L("Ice & water shield", "", Math.ceil(asp.ice_water_total_lf), "lin ft"),
+        L("Aluminum drip edge (10% waste)", `${dripStock}'`, asp.drip_edge_quantity ?? 0, "pcs"),
+        L("Starter shingle strip (10% waste)", "", Math.ceil(asp.starter_order_lf), "lin ft"),
+        L("Galvanized coil roofing nails", "", asp.roofing_nail_boxes, "boxes"),
+        L("Exterior roofing sealant", "", 1, "box"),
       ];
-      if (r.seam_required && r.h_channel_quantity > 0) lines.push({ id: "cc_h", item: `H-channel (${n(r.h_channel_total_lf, 0)} lf, ${r.h_channel_lines} seam line(s))`, calc: r.h_channel_quantity, unit: "pcs" });
-      g.push({ title: "ROOF CEILING", lines });
+      if (asp.ridge_cap_lf > 0) roof.splice(5, 0, L("Ridge cap shingles", "", Math.ceil(asp.ridge_cap_lf), "lin ft"));
+      if (asp.include_headwall_flashing) roof.push(L("Headwall flashing", "", Math.ceil(asp.headwall_flashing_lf), "lin ft"));
+      groups.push({ title: "ROOFING", lines: roof });
+    } else {
+      groups.push({ title: "ROOFING", lines: [L(metalNotes || "Metal roofing — manual (coming later)", "", 0, "—")] });
     }
-    if (roofing === "asphalt" && asp) {
-      const lines: BomLine[] = [
-        { id: "shingles", item: `Shingle bundles (~${n(asp.roofing_squares, 1)} sq, 15% waste)`, calc: asp.shingle_bundle_quantity, unit: "bundles" },
-        { id: "underlay", item: "Synthetic underlayment", calc: asp.underlayment_quantity ?? 0, unit: "rolls" },
-        { id: "icewater", item: "Ice & water shield", calc: Math.ceil(asp.ice_water_total_lf), unit: "lin ft" },
-        { id: "drip", item: "Aluminum drip edge (10% waste)", calc: asp.drip_edge_quantity ?? 0, unit: "pcs" },
-        { id: "starter", item: "Starter shingle strip (10% waste)", calc: Math.ceil(asp.starter_order_lf), unit: "lin ft" },
-        { id: "nails", item: "Galvanized coil roofing nails", calc: asp.roofing_nail_boxes, unit: "boxes" },
-        { id: "sealant", item: "Exterior roofing sealant", calc: 1, unit: "box" },
-      ];
-      if (asp.ridge_cap_lf > 0) lines.splice(5, 0, { id: "ridge", item: "Ridge cap shingles", calc: Math.ceil(asp.ridge_cap_lf), unit: "lin ft" });
-      if (asp.include_headwall_flashing) lines.push({ id: "headwall", item: "Headwall flashing (attached)", calc: Math.ceil(asp.headwall_flashing_lf), unit: "lin ft" });
-      g.push({ title: "ROOFING", lines });
-    } else if (roofing === "metal") {
-      g.push({ title: "ROOFING", lines: [{ id: "metal", item: "Metal roofing — manual list (coming later)", calc: 0, unit: "—", note: metalNotes || "Add materials in the Roofing notes field" }] });
-    }
-    // OPTIONAL ITEMS
-    const opt: BomLine[] = [];
-    if (includeGutters) opt.push({ id: "gutters", item: "Gutters & downspouts", calc: Math.ceil(perim), unit: "lin ft" });
-    if (includeRidgeVent && roofType === "gable") opt.push({ id: "ridgevent", item: "Ridge vent", calc: Math.ceil(geo.effective_roof_length_ft), unit: "lin ft" });
-    if (opt.length === 0) opt.push({ id: "opt_none", item: optionalNotes || "No optional items selected", calc: 0, unit: "—" });
-    g.push({ title: "OPTIONAL ITEMS", lines: opt });
+
+    const opt: Line[] = [];
+    if (includeGutters) opt.push(L("Gutters & downspouts", "", perim, "lin ft"));
+    if (includeRidgeVent && roofType === "gable") opt.push(L("Ridge vent", "", Math.ceil(geo.effective_roof_length_ft), "lin ft"));
+    if (optionalNotes) opt.push(L(optionalNotes, "", 1, "ea"));
+    if (opt.length === 0) opt.push(L("No optional items", "", 0, "—"));
+    groups.push({ title: "OPTIONAL ITEMS", lines: opt });
 
     if (fp) {
-      const lines: BomLine[] = [
-        { id: "fp_stud", item: "20-ga metal stud 3.5″×10′", calc: fp.metal_stud_quantity, unit: "pcs" },
-        { id: "fp_track", item: "20-ga metal track 3.5″×10′ (10% waste)", calc: fp.metal_track_quantity, unit: "pcs" },
-        { id: "fp_cb", item: "Cement board 3′×5′×½″ (10% waste)", calc: fp.cement_board_quantity, unit: "boards" },
-        { id: "fp_screw", item: "Cement board screws", calc: fp.cement_board_screw_box_quantity, unit: "boxes" },
-        { id: "fp_stone", item: `MSI stone veneer${fp.stone_box_quantity === null ? " — enter box coverage" : ""}`, calc: fp.stone_box_quantity ?? 0, unit: "boxes", note: `Order area ${n(fp.fireplace_stone_order_sqft, 1)} sqft (15% waste)` },
-        { id: "fp_adh", item: "Stone veneer adhesive", calc: fp.veneer_adhesive_quantity ?? 0, unit: "units" },
+      const f: Line[] = [
+        L("20-ga metal stud", "3.5\"×10'", fp.metal_stud_quantity, "pcs"),
+        L("20-ga metal track (10% waste)", "3.5\"×10'", fp.metal_track_quantity, "pcs"),
+        L("Cement board (10% waste)", "3'×5'×½\"", fp.cement_board_quantity, "boards"),
+        L("Cement board screws", "", fp.cement_board_screw_box_quantity, "boxes"),
+        L(`MSI stone veneer${fp.stone_box_quantity === null ? " (enter box coverage)" : ""}`, `${n(fp.fireplace_stone_order_sqft, 1)} sqft`, fp.stone_box_quantity ?? 0, "boxes"),
+        L("Stone veneer adhesive", "", fp.veneer_adhesive_quantity ?? 0, "units"),
       ];
-      if (fp.fireplace_stone_piece_quantity > 0) lines.push({ id: "fp_piece", item: `Fireplace stone 2″×12″×72″ (${fpStonePiece.replace("_", " & ")})`, calc: fp.fireplace_stone_piece_quantity, unit: "pcs" });
-      lines.push({ id: "fp_appl", item: "Ventless gas fireplace appliance", calc: 1, unit: "ea", note: "Model TBC" });
-      g.push({ title: "FIREPLACE (OPTIONAL)", lines });
+      if (fp.fireplace_stone_piece_quantity > 0) f.push(L(`Fireplace stone (${fpStonePiece.replace("_", " & ")})`, "2\"×12\"×72\"", fp.fireplace_stone_piece_quantity, "pcs"));
+      f.push(L("Ventless gas fireplace appliance", "TBC", 1, "ea"));
+      groups.push({ title: "FIREPLACE (OPTIONAL)", lines: f });
     }
-    return g;
-  }, [roofType, beams, raf, perim, sh, sheathingWaste, attachment, cc, chamColor, roofing, asp, metalNotes, includeGutters, includeRidgeVent, optionalNotes, geo, fp, fpStonePiece]);
+    return groups;
+  }, [input, panelCov, hStock, roofing, underlaymentCov, dripStock, valleyLf, wallLf, includeFp, fpW, fpH, fpD, fpOW, fpOH, fpSides, fpStonePiece, stoneBoxCov, adhesiveCov, roofType, attachment, chamColor, metalNotes, includeGutters, includeRidgeVent, optionalNotes, sheathingWaste, sh, geo]);
+
+  // Editable working BOM (seeded once; regenerate to refresh from inputs)
+  const [bom, setBom] = useState<Group[]>(seed);
+  const updateLine = (gi: number, li: number, field: keyof Line, val: string | number) =>
+    setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, lines: g.lines.map((l, j) => (j !== li ? l : { ...l, [field]: val })) })));
+  const addLine = (gi: number) =>
+    setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, lines: [...g.lines, { id: uid(), description: "", size: "", qty: 0, unit: "" }] })));
+  const removeLine = (gi: number, li: number) =>
+    setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, lines: g.lines.filter((_, j) => j !== li) })));
 
   return (
     <div className="min-h-screen bg-background">
@@ -182,18 +203,9 @@ export function RoofEstimator() {
         <Card className="print:hidden">
           <CardHeader><CardTitle className="text-base">Project Information</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-1">
-              <Label className="text-xs">Project name</Label>
-              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="e.g., Smith Pavilion" className="h-10" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Address</Label>
-              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, City, State ZIP" className="h-10" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Delivery date request</Label>
-              <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className="h-10" />
-            </div>
+            <div className="space-y-1"><Label className="text-xs">Project name</Label><Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="e.g., Smith Pavilion" className="h-10" /></div>
+            <div className="space-y-1"><Label className="text-xs">Address</Label><Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, City, State ZIP" className="h-10" /></div>
+            <div className="space-y-1"><Label className="text-xs">Delivery date request</Label><Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className="h-10" /></div>
           </CardContent>
         </Card>
 
@@ -223,7 +235,6 @@ export function RoofEstimator() {
           </CardContent>
         </Card>
 
-        {/* Overhangs */}
         <details className="rounded-xl border bg-card print:hidden">
           <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Roof Overhangs <span className="font-normal text-muted-foreground">(defaults: 1 / 1 / 1 / 0)</span></summary>
           <div className="grid grid-cols-2 gap-3 px-4 pb-4 sm:grid-cols-4">
@@ -235,44 +246,40 @@ export function RoofEstimator() {
           </div>
         </details>
 
-        {/* Roof Ceiling — ChamClad brand + color cards (always included) */}
+        {/* Roof Ceiling — ChamClad (always included) */}
         <Card className="print:hidden">
-          <CardHeader>
-            <CardTitle className="text-base">Roof Ceiling — ChamClad</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-base">Roof Ceiling — ChamClad</CardTitle></CardHeader>
           <CardContent className="space-y-5">
-              {/* Brand */}
-              <div>
-                <Label className="text-xs">Brand</Label>
-                <div className="mt-2 flex items-center gap-3 rounded-xl border-2 border-primary bg-primary/5 px-4 py-3">
-                  <PanelTop className="h-5 w-5 text-primary" />
-                  <div><div className="font-semibold">{CHAMCLAD_BRAND}</div><div className="text-xs text-muted-foreground">{CHAMCLAD_COLORS.length} colors · 16′ & 20′ panels</div></div>
-                </div>
+            <div>
+              <Label className="text-xs">Brand</Label>
+              <div className="mt-2 flex items-center gap-3 rounded-xl border-2 border-primary bg-primary/5 px-4 py-3">
+                <PanelTop className="h-5 w-5 text-primary" />
+                <div><div className="font-semibold">{CHAMCLAD_BRAND}</div><div className="text-xs text-muted-foreground">{CHAMCLAD_COLORS.length} colors · 16′ & 20′ panels</div></div>
               </div>
-              {/* Color cards */}
-              <div>
-                <Label className="text-xs">Panel color</Label>
-                <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {CHAMCLAD_COLORS.map((c) => {
-                    const active = chamColor === c.name;
-                    return (
-                      <button key={c.name} onClick={() => setChamColor(c.name)} className={cn("overflow-hidden rounded-xl border-2 text-left transition-all", active ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40")}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={c.img} alt={c.name} className="h-16 w-full object-cover" />
-                        <div className="flex items-center justify-between px-2.5 py-2">
-                          <span className="text-xs font-semibold leading-tight">{c.name}</span>
-                          {active && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+            </div>
+            <div>
+              <Label className="text-xs">Panel color</Label>
+              <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {CHAMCLAD_COLORS.map((c) => {
+                  const active = chamColor === c.name;
+                  return (
+                    <button key={c.name} onClick={() => setChamColor(c.name)} className={cn("overflow-hidden rounded-xl border-2 text-left transition-all", active ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40")}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={c.img} alt={c.name} className="h-16 w-full object-cover" />
+                      <div className="flex items-center justify-between px-2.5 py-2">
+                        <span className="text-xs font-semibold leading-tight">{c.name}</span>
+                        {active && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Num label="Panel coverage (ft)" value={panelCov} onChange={setPanelCov} step={0.5} />
-                <Num label="H-channel stock (ft)" value={hStock} onChange={setHStock} />
-              </div>
-            </CardContent>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Num label="Panel coverage (ft)" value={panelCov} onChange={setPanelCov} step={0.5} />
+              <Num label="H-channel stock (ft)" value={hStock} onChange={setHStock} />
+            </div>
+          </CardContent>
         </Card>
 
         {/* Roofing */}
@@ -296,7 +303,7 @@ export function RoofEstimator() {
           </CardContent>
         </Card>
 
-        {/* Optional items */}
+        {/* Optional */}
         <Card className="print:hidden">
           <CardHeader><CardTitle className="text-base">Optional Items</CardTitle></CardHeader>
           <CardContent className="space-y-3">
@@ -329,53 +336,59 @@ export function RoofEstimator() {
           )}
         </Card>
 
-        {/* ── BILL OF MATERIALS (at the end) ── */}
+        {/* ── BILL OF MATERIALS (editable) ── */}
         <div className="pt-2">
           <div className="mb-1 flex flex-wrap items-end justify-between gap-2 border-b-2 border-primary pb-2">
-            <h2 className="text-xl font-bold tracking-tight">Bill of Materials</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold tracking-tight">Bill of Materials</h2>
+              <Button size="sm" variant="outline" className="gap-1.5 print:hidden" onClick={() => setBom(seed)} title="Rebuild from current inputs (overwrites manual edits)">
+                <RotateCcw className="h-3.5 w-3.5" /> Regenerate from inputs
+              </Button>
+            </div>
             <div className="text-right text-sm text-muted-foreground">
               <div className="font-semibold text-foreground">{projectName || "Roof project"}</div>
               {address && <div>{address}</div>}
               {deliveryDate && <div>Delivery requested: {deliveryDate}</div>}
             </div>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-4">
-            <Stat label="Roof type" value={roofType === "gable" ? "Gable" : "Shed"} />
-            <Stat label="Effective W × L" value={`${n(geo.effective_roof_width_ft, 0)}′ × ${n(geo.effective_roof_length_ft, 0)}′`} />
-            <Stat label="Rafter length" value={`${n(geo.roof_diagonal_ft, 1)}′`} />
-            <Stat label="Roof area" value={`${n(sh.roof_surface_area_sqft, 0)} sqft`} />
-          </div>
+          <p className="mb-3 text-xs text-muted-foreground print:hidden">Edit any field, add or remove lines. &ldquo;Regenerate&rdquo; rebuilds from the inputs above and replaces manual edits.</p>
 
-          <div className="mt-4 space-y-4">
-            {groups.map((grp) => (
+          <div className="space-y-4">
+            {bom.map((grp, gi) => (
               <div key={grp.title} className="overflow-hidden rounded-lg border print:break-inside-avoid">
-                <div className="bg-primary/10 px-4 py-2 text-sm font-bold uppercase tracking-wide text-primary">{grp.title}</div>
+                <div className={cn("flex items-center justify-between px-4 py-2 text-sm font-bold uppercase tracking-wide", groupColor(grp.title))}>
+                  <span>{grp.title}</span>
+                  <button onClick={() => addLine(gi)} className="flex items-center gap-1 rounded-md bg-white/60 px-2 py-1 text-xs font-semibold hover:bg-white print:hidden"><Plus className="h-3 w-3" /> Add item</button>
+                </div>
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
-                      <th className="px-3 py-1.5 font-semibold">Item</th>
-                      <th className="px-3 py-1.5 text-right font-semibold">Calc</th>
-                      <th className="px-3 py-1.5 text-right font-semibold print:hidden">Override</th>
-                      <th className="px-3 py-1.5 text-right font-semibold">Final</th>
-                      <th className="px-3 py-1.5 font-semibold">Unit</th>
+                      <th className="px-3 py-1.5 font-semibold">Description</th>
+                      <th className="px-3 py-1.5 font-semibold w-28">Size</th>
+                      <th className="px-3 py-1.5 font-semibold w-20 text-right">Qty</th>
+                      <th className="px-3 py-1.5 font-semibold w-24">Unit</th>
+                      <th className="px-2 py-1.5 w-8 print:hidden"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {grp.lines.map((l) => (
-                      <tr key={l.id} className="border-b last:border-0 align-top">
-                        <td className="px-3 py-2"><div className="font-medium">{l.item}</div>{l.note && <div className="text-xs text-muted-foreground">{l.note}</div>}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{n(l.calc, l.calc % 1 ? 1 : 0)}</td>
-                        <td className="px-3 py-2 text-right print:hidden"><input type="number" value={overrides[l.id] ?? ""} placeholder="—" onChange={(e) => setOverride(l.id, e.target.value)} className="w-20 rounded border px-2 py-1 text-right text-sm" /></td>
-                        <td className="px-3 py-2 text-right font-semibold tabular-nums">{n(finalOf(l), finalOf(l) % 1 ? 1 : 0)}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{l.unit}</td>
+                    {grp.lines.map((l, li) => (
+                      <tr key={l.id} className="border-b last:border-0">
+                        <td className="px-2 py-1"><input value={l.description} onChange={(e) => updateLine(gi, li, "description", e.target.value)} className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
+                        <td className="px-2 py-1"><input value={l.size} onChange={(e) => updateLine(gi, li, "size", e.target.value)} className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
+                        <td className="px-2 py-1"><input type="number" value={l.qty} onChange={(e) => updateLine(gi, li, "qty", e.target.value === "" ? 0 : Number(e.target.value))} className="w-full rounded border-transparent bg-transparent px-2 py-1 text-right tabular-nums hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
+                        <td className="px-2 py-1"><input value={l.unit} onChange={(e) => updateLine(gi, li, "unit", e.target.value)} className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
+                        <td className="px-2 py-1 text-center print:hidden"><button onClick={() => removeLine(gi, li)} className="text-muted-foreground hover:text-destructive" title="Remove"><Trash2 className="h-4 w-4" /></button></td>
                       </tr>
                     ))}
+                    {grp.lines.length === 0 && (
+                      <tr><td colSpan={5} className="px-3 py-3 text-center text-xs text-muted-foreground">No items — use &ldquo;Add item&rdquo;.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             ))}
           </div>
-          <p className="mt-4 text-xs text-muted-foreground">Preliminary material list for budgeting. Verify spans, code compliance, and engineering before ordering. Quantities are editable via Override.</p>
+          <p className="mt-4 text-xs text-muted-foreground">Preliminary material list for budgeting. Verify spans, code compliance, and engineering before ordering.</p>
         </div>
       </div>
     </div>
@@ -403,7 +416,4 @@ function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
 }
 function ToggleRow({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
   return <div className="flex items-center justify-between rounded-lg border px-3 py-2.5"><span className="text-sm font-medium">{label}</span><Toggle on={on} onClick={onClick} /></div>;
-}
-function Stat({ label, value }: { label: string; value: string }) {
-  return <div><div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div><div className="text-base font-bold">{value}</div></div>;
 }
