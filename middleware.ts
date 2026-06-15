@@ -1,6 +1,7 @@
 import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from "@/lib/supabase/env";
 
 export async function middleware(request: NextRequest) {
   const response = await updateSession(request);
@@ -65,10 +66,8 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith("/supplier");
 
     if (isDashboardRoute) {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey =
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+      const supabaseUrl = SUPABASE_URL;
+      const supabaseKey = SUPABASE_ANON_KEY;
 
       if (supabaseUrl && supabaseKey) {
         const supabase = createServerClient(supabaseUrl, supabaseKey, {
