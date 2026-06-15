@@ -220,6 +220,12 @@ export function RoofEstimator() {
     setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, lines: [...g.lines, { id: uid(), description: "", size: "", brand: "", color: "", qty: 0, unit: "" }] })));
   const removeLine = (gi: number, li: number) =>
     setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, lines: g.lines.filter((_, j) => j !== li) })));
+  const updateGroupTitle = (gi: number, title: string) =>
+    setBom((b) => b.map((g, i) => (i !== gi ? g : { ...g, title })));
+  const addGroup = () =>
+    setBom((b) => [...b, { title: "NEW SECTION", lines: [{ id: uid(), description: "", size: "", brand: "", color: "", qty: 0, unit: "" }] }]);
+  const removeGroup = (gi: number) =>
+    setBom((b) => b.filter((_, i) => i !== gi));
 
   return (
     <div className="min-h-screen bg-background">
@@ -377,16 +383,20 @@ export function RoofEstimator() {
         {/* ── BILL OF MATERIALS (editable) ── */}
         <div className="pt-2">
           <div className="mb-1 flex flex-wrap items-end justify-between gap-2 border-b-2 border-primary pb-2">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-bold tracking-tight">Bill of Materials</h2>
               <Button size="sm" variant="outline" className="gap-1.5 print:hidden" onClick={() => setBom(seed)} title="Rebuild from current inputs (overwrites manual edits)">
-                <RotateCcw className="h-3.5 w-3.5" /> Regenerate from inputs
+                <RotateCcw className="h-3.5 w-3.5" /> Regenerate
+              </Button>
+              <Button size="sm" variant="outline" className="gap-1.5 print:hidden" onClick={addGroup} title="Add a new section">
+                <Plus className="h-3.5 w-3.5" /> Add section
               </Button>
             </div>
-            <div className="text-right text-sm text-muted-foreground">
-              <div className="font-semibold text-foreground">{projectName || "Roof project"}</div>
-              {address && <div>{address}</div>}
-              {deliveryDate && <div>Delivery requested: {deliveryDate}</div>}
+            {/* Project info — shown on screen and in print */}
+            <div className="text-sm sm:text-right">
+              <div className="text-base font-bold">{projectName || "Roof project"}</div>
+              <div className="text-muted-foreground">{address || "Address: —"}</div>
+              <div className="text-muted-foreground">Delivery requested: {deliveryDate || "—"}</div>
             </div>
           </div>
           <p className="mb-3 text-xs text-muted-foreground print:hidden">Edit any field, add or remove lines. &ldquo;Regenerate&rdquo; rebuilds from the inputs above and replaces manual edits.</p>
@@ -397,10 +407,13 @@ export function RoofEstimator() {
 
           <div className="space-y-4">
             {bom.map((grp, gi) => (
-              <div key={grp.title} className="overflow-hidden rounded-lg border print:break-inside-avoid">
-                <div className={cn("flex items-center justify-between px-4 py-2 text-sm font-bold uppercase tracking-wide", groupColor(grp.title))}>
-                  <span>{grp.title}</span>
-                  <button onClick={() => addLine(gi)} className="flex items-center gap-1 rounded-md bg-white/60 px-2 py-1 text-xs font-semibold hover:bg-white print:hidden"><Plus className="h-3 w-3" /> Add item</button>
+              <div key={gi} className="overflow-hidden rounded-lg border print:break-inside-avoid">
+                <div className={cn("flex items-center justify-between gap-2 px-4 py-2 text-sm font-bold uppercase tracking-wide", groupColor(grp.title))}>
+                  <input value={grp.title} onChange={(e) => updateGroupTitle(gi, e.target.value)} className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 font-bold uppercase tracking-wide hover:border-current/30 focus:border-current/40 focus:bg-white/40 focus:outline-none print:border-0" />
+                  <div className="flex items-center gap-1.5 print:hidden">
+                    <button onClick={() => addLine(gi)} className="flex items-center gap-1 rounded-md bg-white/60 px-2 py-1 text-xs font-semibold hover:bg-white"><Plus className="h-3 w-3" /> Add item</button>
+                    <button onClick={() => removeGroup(gi)} title="Remove section" className="rounded-md bg-white/60 p-1 hover:bg-white"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
                 </div>
                 <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px] text-sm">
