@@ -41,6 +41,11 @@ const GROUP_COLORS: Record<string, string> = {
 };
 const groupColor = (t: string) => GROUP_COLORS[t] ?? "bg-muted text-foreground";
 
+// Standard lumber stock lengths (ft) used for the editable Size column.
+const STOCK_LENGTHS = [8, 10, 12, 14, 16, 18, 20];
+const stockLen = (ft: number) => STOCK_LENGTHS.find((s) => s >= ft) ?? 20;
+const piecesFor = (totalLf: number, stock = 16) => Math.max(1, Math.ceil(totalLf / stock));
+
 interface Line { id: string; description: string; size: string; qty: number; unit: string; }
 interface Group { title: string; lines: Line[]; }
 
@@ -113,25 +118,25 @@ export function RoofEstimator() {
     const groups: Group[] = [];
 
     groups.push({ title: "BEAM", lines: [
-      L(roofType === "gable" ? "Beam stock (width + length × 3)" : "Beam stock", "2x10", Math.round(beams), "lin ft"),
+      L("2x10", "16", piecesFor(beams, 16), "pcs"),
     ]});
     groups.push({ title: "RAFTERS", lines: [
-      L("Rafters", `${raf.recommended_rafter_size} @ ${n(raf.rafter_length_ft, 1)}'`, raf.rafter_quantity, "pcs"),
+      L(raf.recommended_rafter_size, String(stockLen(raf.rafter_length_ft)), raf.rafter_quantity, "pcs"),
     ]});
     groups.push({ title: "FASCIA", lines: [
-      L("Fascia", "1x8", perim, "lin ft"),
-      L("Perimeter framing", "2x6", perim, "lin ft"),
+      L("1x8 PVC", "16", piecesFor(perim, 16), "pcs"),
+      L("2x6", "16", piecesFor(perim, 16), "pcs"),
     ]});
     groups.push({ title: "SHEATHING", lines: [
-      L(`Roof sheathing (+${sheathingWaste} waste)`, "4×8 sheet", sh.sheathing_quantity, "sheets"),
+      L("4x8 sheet", "", sh.sheathing_quantity, "sheets"),
     ]});
     groups.push({ title: "HARDWARE", lines: [
-      L("Hurricane / rafter ties", "", raf.rafter_quantity, "pcs"),
+      L("Hurricane / rafter tie", "", raf.rafter_quantity, "pcs"),
       L("Structural screws", "", 1, "lot"),
       ...(attachment === "attached" ? [L("Ledger connection hardware", "", 1, "lot")] : []),
     ]});
-    const ceiling: Line[] = [L(`${CHAMCLAD_BRAND} panel — ${chamColor}`, `${r.recommended_panel_length_ft}'`, panels, "panels")];
-    if (r.seam_required && r.h_channel_quantity > 0) ceiling.push(L("H-channel", `${hStock}'`, r.h_channel_quantity, "pcs"));
+    const ceiling: Line[] = [L(`ChamClad — ${chamColor}`, String(r.recommended_panel_length_ft), panels, "panels")];
+    if (r.seam_required && r.h_channel_quantity > 0) ceiling.push(L("H-channel", String(hStock), r.h_channel_quantity, "pcs"));
     groups.push({ title: "ROOF CEILING", lines: ceiling });
 
     if (asp) {
@@ -139,7 +144,7 @@ export function RoofEstimator() {
         L("Shingle bundles (15% waste)", "", asp.shingle_bundle_quantity, "bundles"),
         L("Synthetic underlayment", "", asp.underlayment_quantity ?? 0, "rolls"),
         L("Ice & water shield", "", Math.ceil(asp.ice_water_total_lf), "lin ft"),
-        L("Aluminum drip edge (10% waste)", `${dripStock}'`, asp.drip_edge_quantity ?? 0, "pcs"),
+        L("Aluminum drip edge (10% waste)", String(dripStock), asp.drip_edge_quantity ?? 0, "pcs"),
         L("Starter shingle strip (10% waste)", "", Math.ceil(asp.starter_order_lf), "lin ft"),
         L("Galvanized coil roofing nails", "", asp.roofing_nail_boxes, "boxes"),
         L("Exterior roofing sealant", "", 1, "box"),
@@ -160,15 +165,15 @@ export function RoofEstimator() {
 
     if (fp) {
       const f: Line[] = [
-        L("20-ga metal stud", "3.5\"×10'", fp.metal_stud_quantity, "pcs"),
-        L("20-ga metal track (10% waste)", "3.5\"×10'", fp.metal_track_quantity, "pcs"),
-        L("Cement board (10% waste)", "3'×5'×½\"", fp.cement_board_quantity, "boards"),
+        L("20-ga metal stud 3.5\"", "10", fp.metal_stud_quantity, "pcs"),
+        L("20-ga metal track 3.5\" (10% waste)", "10", fp.metal_track_quantity, "pcs"),
+        L("3x5 cement board ½\" (10% waste)", "", fp.cement_board_quantity, "boards"),
         L("Cement board screws", "", fp.cement_board_screw_box_quantity, "boxes"),
-        L(`MSI stone veneer${fp.stone_box_quantity === null ? " (enter box coverage)" : ""}`, `${n(fp.fireplace_stone_order_sqft, 1)} sqft`, fp.stone_box_quantity ?? 0, "boxes"),
+        L(`MSI stone veneer${fp.stone_box_quantity === null ? " (enter box coverage)" : ""}`, "", fp.stone_box_quantity ?? 0, "boxes"),
         L("Stone veneer adhesive", "", fp.veneer_adhesive_quantity ?? 0, "units"),
       ];
-      if (fp.fireplace_stone_piece_quantity > 0) f.push(L(`Fireplace stone (${fpStonePiece.replace("_", " & ")})`, "2\"×12\"×72\"", fp.fireplace_stone_piece_quantity, "pcs"));
-      f.push(L("Ventless gas fireplace appliance", "TBC", 1, "ea"));
+      if (fp.fireplace_stone_piece_quantity > 0) f.push(L(`Fireplace stone 2x12 (${fpStonePiece.replace("_", " & ")})`, "6", fp.fireplace_stone_piece_quantity, "pcs"));
+      f.push(L("Ventless gas fireplace appliance", "", 1, "ea"));
       groups.push({ title: "FIREPLACE (OPTIONAL)", lines: f });
     }
     return groups;
@@ -353,6 +358,10 @@ export function RoofEstimator() {
           </div>
           <p className="mb-3 text-xs text-muted-foreground print:hidden">Edit any field, add or remove lines. &ldquo;Regenerate&rdquo; rebuilds from the inputs above and replaces manual edits.</p>
 
+          <datalist id="bom-lengths">
+            {STOCK_LENGTHS.map((s) => <option key={s} value={s} />)}
+          </datalist>
+
           <div className="space-y-4">
             {bom.map((grp, gi) => (
               <div key={grp.title} className="overflow-hidden rounded-lg border print:break-inside-avoid">
@@ -364,7 +373,7 @@ export function RoofEstimator() {
                   <thead>
                     <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
                       <th className="px-3 py-1.5 font-semibold">Description</th>
-                      <th className="px-3 py-1.5 font-semibold w-28">Size</th>
+                      <th className="px-3 py-1.5 font-semibold w-28">Length (ft)</th>
                       <th className="px-3 py-1.5 font-semibold w-20 text-right">Qty</th>
                       <th className="px-3 py-1.5 font-semibold w-24">Unit</th>
                       <th className="px-2 py-1.5 w-8 print:hidden"></th>
@@ -374,7 +383,7 @@ export function RoofEstimator() {
                     {grp.lines.map((l, li) => (
                       <tr key={l.id} className="border-b last:border-0">
                         <td className="px-2 py-1"><input value={l.description} onChange={(e) => updateLine(gi, li, "description", e.target.value)} className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
-                        <td className="px-2 py-1"><input value={l.size} onChange={(e) => updateLine(gi, li, "size", e.target.value)} className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
+                        <td className="px-2 py-1"><input list="bom-lengths" value={l.size} onChange={(e) => updateLine(gi, li, "size", e.target.value)} placeholder="—" className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
                         <td className="px-2 py-1"><input type="number" value={l.qty} onChange={(e) => updateLine(gi, li, "qty", e.target.value === "" ? 0 : Number(e.target.value))} className="w-full rounded border-transparent bg-transparent px-2 py-1 text-right tabular-nums hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
                         <td className="px-2 py-1"><input value={l.unit} onChange={(e) => updateLine(gi, li, "unit", e.target.value)} className="w-full rounded border-transparent bg-transparent px-2 py-1 hover:border-input focus:border-input focus:bg-background print:border-0" /></td>
                         <td className="px-2 py-1 text-center print:hidden"><button onClick={() => removeLine(gi, li)} className="text-muted-foreground hover:text-destructive" title="Remove"><Trash2 className="h-4 w-4" /></button></td>
