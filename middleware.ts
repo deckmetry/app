@@ -7,6 +7,22 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // Internal Roof Estimator — gated behind a shared login/password (HTTP Basic Auth).
+  // Credentials come from env (never hardcoded; repo is public). Fails closed if unset.
+  if (pathname === "/roof-estimate" || pathname.startsWith("/roof-estimate/")) {
+    const expectedUser = process.env.ROOF_ESTIMATE_USER || "concept-decks";
+    const expectedPass = process.env.ROOF_ESTIMATE_PASSWORD;
+    const header = request.headers.get("authorization") || "";
+    const ok = !!expectedPass && header === "Basic " + btoa(`${expectedUser}:${expectedPass}`);
+    if (!ok) {
+      return new NextResponse("Authentication required", {
+        status: 401,
+        headers: { "WWW-Authenticate": 'Basic realm="Deckmetry Roof Estimator", charset="UTF-8"' },
+      });
+    }
+    return response;
+  }
+
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/login" ||
@@ -17,7 +33,6 @@ export async function middleware(request: NextRequest) {
     pathname === "/legal-structure" ||
     pathname === "/showroom-demo" ||
     pathname === "/bom-unlocked" ||
-    pathname === "/roof-estimate" ||
     pathname.startsWith("/for-") ||
     pathname === "/demo" ||
     pathname.startsWith("/demo/") ||
