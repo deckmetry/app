@@ -7,6 +7,9 @@ import { revalidatePath } from "next/cache";
 import { checkEstimateLimit } from "@/lib/subscription";
 import { logActivity } from "@/lib/actions/activity";
 import { getFullCatalog } from "@/lib/catalog-db";
+import { combinedBomItems, includesDeck, includesRoof } from "@/lib/combined-bom";
+
+type SaveOpts = { status?: "draft" | "completed" };
 
 interface SaveEstimateResult {
   success: boolean;
@@ -17,8 +20,12 @@ interface SaveEstimateResult {
 
 export async function saveEstimate(
   formData: EstimateInput,
-  existingProjectId?: string
+  existingProjectId?: string,
+  opts: SaveOpts = {}
 ): Promise<SaveEstimateResult> {
+  const status = opts.status ?? "completed";
+  const hasDeck = includesDeck(formData.scope);
+  const hasRoof = includesRoof(formData.scope);
   const supabase = await createClient();
 
   // Verify auth
@@ -72,6 +79,8 @@ export async function saveEstimate(
 
   // Run the BOM engine server-side (authoritative calculation)
   const estimate = calculateEstimate(formData, catalog);
+  // Combined deck + roof line items (honors scope)
+  const combinedItems = combinedBomItems(formData);
 
   // Generate share token
   const shareToken = crypto.randomUUID().replace(/-/g, "");
@@ -136,7 +145,11 @@ export async function saveEstimate(
       organization_id: orgId,
       created_by: user.id,
       project_id: projectId,
-      status: "completed" as const,
+      status,
+
+      // Scope + roof config
+      scope: formData.scope,
+      roof_config: hasRoof ? formData.roof : null,
 
       // Job info
       project_name: formData.projectName || "Untitled Estimate",
@@ -147,36 +160,36 @@ export async function saveEstimate(
       email: formData.email || null,
       phone: formData.phone || null,
 
-      // Geometry
-      deck_type: formData.deckType,
-      deck_width_ft: formData.deckWidthFt,
-      deck_projection_ft: formData.deckProjectionFt,
-      deck_height_in: formData.deckHeightIn,
-      joist_spacing_in: formData.joistSpacingIn,
+      // Geometry (null for roof-only)
+      deck_type: hasDeck ? formData.deckType : null,
+      deck_width_ft: hasDeck ? formData.deckWidthFt : null,
+      deck_projection_ft: hasDeck ? formData.deckProjectionFt : null,
+      deck_height_in: hasDeck ? formData.deckHeightIn : null,
+      joist_spacing_in: hasDeck ? formData.joistSpacingIn : null,
 
       // Surface
-      decking_brand: formData.deckingBrand || null,
-      decking_collection: formData.deckingCollection || null,
-      decking_color: formData.deckingColor || null,
-      picture_frame_color: formData.pictureFrameColor || null,
-      picture_frame_enabled: formData.pictureFrameEnabled,
+      decking_brand: hasDeck ? formData.deckingBrand || null : null,
+      decking_collection: hasDeck ? formData.deckingCollection || null : null,
+      decking_color: hasDeck ? formData.deckingColor || null : null,
+      picture_frame_color: hasDeck ? formData.pictureFrameColor || null : null,
+      picture_frame_enabled: hasDeck ? formData.pictureFrameEnabled : false,
 
       // Railing
-      railing_required_override: formData.railingRequiredOverride,
-      railing_material: formData.railingMaterial || null,
-      railing_color: formData.railingColor || null,
-      open_sides: formData.openSides,
+      railing_required_override: hasDeck ? formData.railingRequiredOverride : null,
+      railing_material: hasDeck ? formData.railingMaterial || null : null,
+      railing_color: hasDeck ? formData.railingColor || null : null,
+      open_sides: hasDeck ? formData.openSides : [],
 
       // Add-ons
-      lattice_skirt: formData.latticeSkirt,
-      horizontal_skirt: formData.horizontalSkirt,
-      post_cap_lights: formData.postCapLights,
-      stair_lights: formData.stairLights,
-      accent_lights: formData.accentLights,
+      lattice_skirt: hasDeck ? formData.latticeSkirt : false,
+      horizontal_skirt: hasDeck ? formData.horizontalSkirt : false,
+      post_cap_lights: hasDeck ? formData.postCapLights : false,
+      stair_lights: hasDeck ? formData.stairLights : false,
+      accent_lights: hasDeck ? formData.accentLights : false,
 
       // Computed summary
-      total_area_sf: estimate.derived.deckAreaSf,
-      total_bom_items: estimate.bom.length,
+      total_area_sf: hasDeck ? estimate.derived.deckAreaSf : null,
+      total_bom_items: combinedItems.length,
 
       // Sharing
       share_token: shareToken,
@@ -185,8 +198,8 @@ export async function saveEstimate(
       source: resolvedSource,
 
       // Metadata
-      assumptions: estimate.assumptions,
-      warnings: estimate.warnings,
+      assumptions: hasDeck ? estimate.assumptions : [],
+      warnings: hasDeck ? estimate.warnings : [],
     })
     .select("id")
     .single();
@@ -200,11 +213,14 @@ export async function saveEstimate(
 
   const estimateId = savedEstimate.id;
 
-  // Insert BOM line items
-  if (estimate.bom.length > 0) {
-    const lineItems = estimate.bom.map((item: BomItem, index: number) => ({
+  // Insert combined (deck + roof) BOM line items
+  if (combinedItems.length > 0) {
+    const lineItems = combinedItems.map((item: BomItem, index: number) => ({
       estimate_id: estimateId,
       category: item.category,
+      section: item.section || null,
+      brand: item.brand || null,
+      color: item.color || null,
       description: item.description,
       size: item.size || null,
       quantity: item.quantity,
@@ -223,8 +239,13 @@ export async function saveEstimate(
     }
   }
 
-  // Insert stair sections
-  if (formData.stairSections.length > 0) {
+  // Mark project as having a finished BOM when the list is completed.
+  if (status === "completed") {
+    await supabase.from("projects").update({ status: "bom_created" }).eq("id", projectId);
+  }
+
+  // Insert stair sections (deck only)
+  if (hasDeck && formData.stairSections.length > 0) {
     const stairSections = formData.stairSections.map((stair, index) => ({
       estimate_id: estimateId,
       location: stair.location,
@@ -264,58 +285,67 @@ export async function saveEstimate(
 
 export async function updateEstimate(
   estimateId: string,
-  formData: EstimateInput
+  formData: EstimateInput,
+  opts: SaveOpts = {}
 ): Promise<SaveEstimateResult> {
+  const hasDeck = includesDeck(formData.scope);
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Not authenticated" };
 
   const estimate = calculateEstimate(formData);
+  const combinedItems = combinedBomItems(formData);
 
   const { error: updateError } = await supabase
     .from("estimates")
     .update({
+      ...(opts.status ? { status: opts.status } : {}),
+      scope: formData.scope,
+      roof_config: includesRoof(formData.scope) ? formData.roof : null,
       project_name: formData.projectName || "Untitled Estimate",
       project_address: formData.projectAddress || null,
       contractor_name: formData.contractorName || null,
       email: formData.email || null,
       phone: formData.phone || null,
-      deck_type: formData.deckType,
-      deck_width_ft: formData.deckWidthFt,
-      deck_projection_ft: formData.deckProjectionFt,
-      deck_height_in: formData.deckHeightIn,
-      joist_spacing_in: formData.joistSpacingIn,
-      decking_brand: formData.deckingBrand || null,
-      decking_collection: formData.deckingCollection || null,
-      decking_color: formData.deckingColor || null,
-      picture_frame_color: formData.pictureFrameColor || null,
-      picture_frame_enabled: formData.pictureFrameEnabled,
-      railing_required_override: formData.railingRequiredOverride,
-      railing_material: formData.railingMaterial || null,
-      railing_color: formData.railingColor || null,
-      open_sides: formData.openSides,
-      lattice_skirt: formData.latticeSkirt,
-      horizontal_skirt: formData.horizontalSkirt,
-      post_cap_lights: formData.postCapLights,
-      stair_lights: formData.stairLights,
-      accent_lights: formData.accentLights,
-      total_area_sf: estimate.derived.deckAreaSf,
-      total_bom_items: estimate.bom.length,
-      assumptions: estimate.assumptions,
-      warnings: estimate.warnings,
+      deck_type: hasDeck ? formData.deckType : null,
+      deck_width_ft: hasDeck ? formData.deckWidthFt : null,
+      deck_projection_ft: hasDeck ? formData.deckProjectionFt : null,
+      deck_height_in: hasDeck ? formData.deckHeightIn : null,
+      joist_spacing_in: hasDeck ? formData.joistSpacingIn : null,
+      decking_brand: hasDeck ? formData.deckingBrand || null : null,
+      decking_collection: hasDeck ? formData.deckingCollection || null : null,
+      decking_color: hasDeck ? formData.deckingColor || null : null,
+      picture_frame_color: hasDeck ? formData.pictureFrameColor || null : null,
+      picture_frame_enabled: hasDeck ? formData.pictureFrameEnabled : false,
+      railing_required_override: hasDeck ? formData.railingRequiredOverride : null,
+      railing_material: hasDeck ? formData.railingMaterial || null : null,
+      railing_color: hasDeck ? formData.railingColor || null : null,
+      open_sides: hasDeck ? formData.openSides : [],
+      lattice_skirt: hasDeck ? formData.latticeSkirt : false,
+      horizontal_skirt: hasDeck ? formData.horizontalSkirt : false,
+      post_cap_lights: hasDeck ? formData.postCapLights : false,
+      stair_lights: hasDeck ? formData.stairLights : false,
+      accent_lights: hasDeck ? formData.accentLights : false,
+      total_area_sf: hasDeck ? estimate.derived.deckAreaSf : null,
+      total_bom_items: combinedItems.length,
+      assumptions: hasDeck ? estimate.assumptions : [],
+      warnings: hasDeck ? estimate.warnings : [],
     })
     .eq("id", estimateId);
 
   if (updateError) return { success: false, error: updateError.message };
 
-  // Replace line items
+  // Replace line items with the combined (deck + roof) list
   await supabase.from("estimate_line_items").delete().eq("estimate_id", estimateId);
-  if (estimate.bom.length > 0) {
+  if (combinedItems.length > 0) {
     await supabase.from("estimate_line_items").insert(
-      estimate.bom.map((item: BomItem, index: number) => ({
+      combinedItems.map((item: BomItem, index: number) => ({
         estimate_id: estimateId,
         category: item.category,
+        section: item.section || null,
+        brand: item.brand || null,
+        color: item.color || null,
         description: item.description,
         size: item.size || null,
         quantity: item.quantity,
@@ -327,9 +357,9 @@ export async function updateEstimate(
     );
   }
 
-  // Replace stair sections
+  // Replace stair sections (deck only)
   await supabase.from("estimate_stair_sections").delete().eq("estimate_id", estimateId);
-  if (formData.stairSections.length > 0) {
+  if (hasDeck && formData.stairSections.length > 0) {
     await supabase.from("estimate_stair_sections").insert(
       formData.stairSections.map((stair, index) => ({
         estimate_id: estimateId,

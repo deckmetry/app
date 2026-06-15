@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import type { EstimateInput, WizardStep } from "@/lib/types";
-import { initialFormState, WIZARD_STEPS, getStepIndex } from "@/lib/store";
+import { initialFormState, getStepsForScope } from "@/lib/store";
 import { calculateEstimate } from "@/lib/calculations";
 
 interface WizardState {
@@ -24,7 +24,7 @@ interface WizardState {
 
 export const useWizardStore = create<WizardState>((set, get) => ({
   formData: initialFormState,
-  currentStep: "geometry",
+  currentStep: "job-info",
   source: null,
   editingEstimateId: null,
 
@@ -42,25 +42,27 @@ export const useWizardStore = create<WizardState>((set, get) => ({
   goToStep: (step) => set({ currentStep: step }),
 
   goNext: () => {
-    const { currentStep } = get();
-    const currentIndex = getStepIndex(currentStep);
-    if (currentIndex < WIZARD_STEPS.length - 1) {
-      set({ currentStep: WIZARD_STEPS[currentIndex + 1].id });
+    const { currentStep, formData } = get();
+    const steps = getStepsForScope(formData.scope);
+    const i = steps.findIndex((s) => s.id === currentStep);
+    if (i >= 0 && i < steps.length - 1) {
+      set({ currentStep: steps[i + 1].id });
     }
   },
 
   goPrevious: () => {
-    const { currentStep } = get();
-    const currentIndex = getStepIndex(currentStep);
-    if (currentIndex > 0) {
-      set({ currentStep: WIZARD_STEPS[currentIndex - 1].id });
+    const { currentStep, formData } = get();
+    const steps = getStepsForScope(formData.scope);
+    const i = steps.findIndex((s) => s.id === currentStep);
+    if (i > 0) {
+      set({ currentStep: steps[i - 1].id });
     }
   },
 
   reset: () =>
     set({
       formData: initialFormState,
-      currentStep: "geometry",
+      currentStep: "job-info",
       source: null,
       editingEstimateId: null,
     }),
@@ -72,8 +74,9 @@ export function useEstimate() {
   return useMemo(() => calculateEstimate(formData), [formData]);
 }
 
-/** Returns the numeric index of the current step. */
+/** Returns the numeric index of the current step within the scope's visible steps. */
 export function useCurrentStepIndex() {
   const currentStep = useWizardStore((s) => s.currentStep);
-  return getStepIndex(currentStep);
+  const scope = useWizardStore((s) => s.formData.scope);
+  return getStepsForScope(scope).findIndex((s) => s.id === currentStep);
 }

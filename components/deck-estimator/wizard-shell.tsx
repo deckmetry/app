@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { EstimateInput, WizardStep } from "@/lib/types";
-import { WIZARD_STEPS } from "@/lib/store";
+import { WIZARD_STEPS, getStepsForScope, DEFAULT_ROOF_CONFIG } from "@/lib/store";
 import {
   useWizardStore,
   useEstimate,
@@ -40,6 +40,7 @@ import { GeometryStep } from "./steps/geometry-step";
 import { SurfaceStep } from "./steps/surface-step";
 import { RailingStairsStep } from "./steps/railing-stairs-step";
 import { AddOnsStep } from "./steps/add-ons-step";
+import { RoofStep } from "./steps/roof-step";
 import { ReviewStep } from "./steps/review-step";
 import { DeckViews } from "./deck-views";
 
@@ -96,6 +97,8 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
   const setEditingEstimateId = useWizardStore((s) => s.setEditingEstimateId);
   const currentStepIndex = useCurrentStepIndex();
   const estimate = useEstimate();
+  // Steps visible for the current scope (deck / roof / both)
+  const steps = getStepsForScope(formData.scope);
 
   const layers = useDrawingStore((s) => s.layers);
   const isFullscreen = useDrawingStore((s) => s.isFullscreen);
@@ -113,6 +116,8 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
       const e = initialEstimate;
       setEditingEstimateId(e.id);
       setFormData({
+        scope: e.scope ?? "deck",
+        roof: e.roof_config ?? DEFAULT_ROOF_CONFIG,
         contractorName: e.contractor_name ?? "",
         email: e.email ?? "",
         phone: e.phone ?? "",
@@ -149,7 +154,7 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
         accentLights: e.accent_lights ?? false,
         source: null,
       });
-      goToStep("geometry");
+      goToStep("job-info");
       return;
     }
 
@@ -225,6 +230,8 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
         return <RailingStairsStep />;
       case "add-ons":
         return <AddOnsStep />;
+      case "roof":
+        return <RoofStep />;
       case "review":
         return <ReviewStep />;
       default:
@@ -266,7 +273,7 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
               </span>
             )}
             <Badge variant="secondary" className="hidden sm:flex">
-              Step {currentStepIndex + 1} of {WIZARD_STEPS.length}
+              Step {currentStepIndex + 1} of {steps.length}
             </Badge>
           </div>
         </div>
@@ -279,7 +286,7 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
             {/* Step Progress */}
             <nav className="overflow-x-auto print:hidden">
               <ol className="flex min-w-max gap-2">
-                {WIZARD_STEPS.map((step, index) => {
+                {steps.map((step, index) => {
                   const isActive = step.id === currentStep;
                   const isComplete = index < currentStepIndex;
                   const isClickable = index <= currentStepIndex;
@@ -317,7 +324,7 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
                         <span className="hidden sm:inline">{step.label}</span>
                         <span className="sm:hidden">{step.shortLabel}</span>
                       </button>
-                      {index < WIZARD_STEPS.length - 1 && (
+                      {index < steps.length - 1 && (
                         <ChevronRight className="mx-1 h-4 w-4 text-muted-foreground/50" />
                       )}
                     </li>
@@ -352,7 +359,7 @@ export function WizardShell({ initialEstimate }: { initialEstimate?: any }) {
                 ) : (
                   <div />
                 )}
-                {currentStepIndex < WIZARD_STEPS.length - 1 ? (
+                {currentStepIndex < steps.length - 1 ? (
                   <Button
                     type="submit"
                     className="bg-primary text-primary-foreground hover:bg-primary/90"

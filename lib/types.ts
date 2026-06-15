@@ -6,6 +6,51 @@ export type RailingMaterial = "vinyl" | "composite" | "aluminum" | "cable";
 export type OpenSide = "left" | "front" | "right" | "rear";
 export type StairLocation = "left" | "front" | "right";
 
+// Project scope — what a contractor is estimating. Drives which wizard steps show.
+export type ProjectScope = "deck" | "roof" | "deck_roof";
+
+// Roof estimator inputs (flat shape mirroring the roof tool UI; mapped to
+// RoofInput in lib/roof-calculations.ts when the engine is called).
+export interface RoofConfig {
+  // Geometry
+  roofType: "gable" | "shed";
+  widthFt: number;
+  lengthFt: number;
+  pitch: number; // rise per 12
+  attachment: "freestanding" | "attached";
+  overhangLeftFt: number;
+  overhangRightFt: number;
+  overhangFrontFt: number;
+  overhangRearFt: number;
+  sheathingWasteSheets: number;
+  // Roofing
+  roofing: "asphalt" | "metal";
+  underlaymentCoverageSqft: number;
+  dripEdgeStockFt: number;
+  valleyLengthFt: number;
+  wallIntersectionFt: number;
+  metalNotes: string;
+  // Roof ceiling (ChamClad, always included)
+  chamColor: string;
+  panelCoverageFt: number;
+  hChannelStockFt: number;
+  // Optional
+  includeGutters: boolean;
+  includeRidgeVent: boolean;
+  optionalNotes: string;
+  // Fireplace (ventless, optional)
+  includeFireplace: boolean;
+  fpWidthFt: number;
+  fpHeightFt: number;
+  fpDepthFt: number;
+  fpOpeningWidthFt: number;
+  fpOpeningHeightFt: number;
+  fpStoneSides: 0 | 1 | 2;
+  fpStonePiece: "none" | "hearth" | "mantel" | "hearth_and_mantel";
+  fpStoneBoxCoverageSqft: number | "";
+  fpAdhesiveCoverageSqft: number;
+}
+
 export interface JurisdictionProfile {
   id: string;
   label: string;
@@ -73,6 +118,9 @@ export interface StairSection {
 }
 
 export interface EstimateInput {
+  // Scope — deck / roof / both
+  scope: ProjectScope;
+
   // Job Info
   contractorName: string;
   email: string;
@@ -112,19 +160,38 @@ export interface EstimateInput {
   stairLights: boolean;
   accentLights: boolean;
 
+  // Roof (present when scope includes roof)
+  roof?: RoofConfig;
+
   // Referral source (e.g. "ref_supplier-slug" → resolved to "supplier_<uuid>")
   source?: string | null;
 }
 
+export type BomCategory =
+  | "foundation"
+  | "framing"
+  | "decking"
+  | "fascia"
+  | "fasteners"
+  | "railing"
+  | "add-ons"
+  | "roof"
+  | "other";
+
 export interface BomItem {
   id: string;
-  category: "foundation" | "framing" | "decking" | "fascia" | "fasteners" | "railing" | "add-ons";
+  category: BomCategory;
   description: string;
   size?: string;
   quantity: number;
   unit: string;
   notes?: string;
   editable?: boolean;
+  // Combined-BOM display fields (roof lines carry brand/color; section overrides
+  // the category label used for grouping, e.g. "BEAM", "ROOF CEILING").
+  section?: string;
+  brand?: string;
+  color?: string;
 }
 
 export interface DerivedValues {
@@ -192,10 +259,11 @@ export interface EstimateOutput {
   derived: DerivedValues;
 }
 
-export type WizardStep = 
+export type WizardStep =
   | "job-info"
   | "geometry"
   | "surface"
   | "railing-stairs"
   | "add-ons"
+  | "roof"
   | "review";

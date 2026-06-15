@@ -7,25 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Hexagon, Printer, Home, Footprints, Flame, PanelTop, CheckCircle2, Plus, Trash2, RotateCcw } from "lucide-react";
-import {
-  beamTotalLf, roofGeometry, rafters, roofPerimeterLf, sheathing, chamClad,
-  asphaltShingles, fireplace,
-  type RoofInput, type RoofType, type RoofAttachment, type FireplaceStoneSelection,
-} from "@/lib/roof-calculations";
+import type { RoofType, RoofAttachment, FireplaceStoneSelection } from "@/lib/roof-calculations";
+import type { RoofConfig } from "@/lib/types";
+import { buildRoofBom, STOCK_LENGTHS } from "@/lib/roof-bom";
+import { CHAMCLAD_BRAND, CHAMCLAD_COLORS } from "@/lib/chamclad";
 
 type RoofingMaterial = "asphalt" | "metal";
-
-const CHAMCLAD_BRAND = "ChamClad";
-const CHAMCLAD_COLORS: { name: string; img: string }[] = [
-  { name: "Atlantic White", img: "/chamclad/Atlantic-White.jpeg" },
-  { name: "Sunbleached Oak", img: "/chamclad/Sunbleached-Oak.jpg" },
-  { name: "Sugar Maple", img: "/chamclad/Sugar-Maple.jpg" },
-  { name: "Manhattan Natural Oak", img: "/chamclad/Manhattan-Natural-Oak.jpg" },
-  { name: "Barrel Oak", img: "/chamclad/Barrel-Oak.jpeg" },
-  { name: "Chai Cedar", img: "/chamclad/Chai-Cedar.jpg" },
-  { name: "Toffee", img: "/chamclad/Toffee.jpg" },
-  { name: "Cinnamon Walnut", img: "/chamclad/Cinnamon-Walnut-Film-Sample.jpg" },
-];
 
 // distinct color per BOM section header
 const GROUP_COLORS: Record<string, string> = {
@@ -40,11 +27,6 @@ const GROUP_COLORS: Record<string, string> = {
   "FIREPLACE (OPTIONAL)": "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200",
 };
 const groupColor = (t: string) => GROUP_COLORS[t] ?? "bg-muted text-foreground";
-
-// Standard lumber stock lengths (ft) used for the editable Size column.
-const STOCK_LENGTHS = [8, 10, 12, 14, 16, 18, 20];
-const stockLen = (ft: number) => STOCK_LENGTHS.find((s) => s >= ft) ?? 20;
-const piecesFor = (totalLf: number, stock = 16) => Math.max(1, Math.ceil(totalLf / stock));
 
 interface Line { id: string; description: string; size: string; brand: string; color: string; qty: number; unit: string; }
 interface Group { title: string; lines: Line[]; }
@@ -89,128 +71,21 @@ export function RoofEstimator() {
   const [stoneBoxCov, setStoneBoxCov] = useState<number | "">("");
   const [adhesiveCov, setAdhesiveCov] = useState(75);
 
-  const input: RoofInput = useMemo(() => ({
-    roof_type: roofType, roof_width_ft: width, roof_length_ft: length, roof_pitch_rise: pitch,
-    attachment, overhangs: { side_overhang_left_ft: oL, side_overhang_right_ft: oR, front_overhang_ft: oF, rear_overhang_ft: oRear },
-  }), [roofType, width, length, pitch, attachment, oL, oR, oF, oRear]);
+  const roofConfig: RoofConfig = useMemo(() => ({
+    roofType, widthFt: width, lengthFt: length, pitch, attachment,
+    overhangLeftFt: oL, overhangRightFt: oR, overhangFrontFt: oF, overhangRearFt: oRear,
+    sheathingWasteSheets: sheathingWaste,
+    roofing, underlaymentCoverageSqft: underlaymentCov, dripEdgeStockFt: dripStock,
+    valleyLengthFt: valleyLf, wallIntersectionFt: wallLf, metalNotes,
+    chamColor, panelCoverageFt: panelCov, hChannelStockFt: hStock,
+    includeGutters, includeRidgeVent, optionalNotes,
+    includeFireplace: includeFp, fpWidthFt: fpW, fpHeightFt: fpH, fpDepthFt: fpD,
+    fpOpeningWidthFt: fpOW, fpOpeningHeightFt: fpOH, fpStoneSides: fpSides,
+    fpStonePiece, fpStoneBoxCoverageSqft: stoneBoxCov, fpAdhesiveCoverageSqft: adhesiveCov,
+  }), [roofType, width, length, pitch, attachment, oL, oR, oF, oRear, sheathingWaste, roofing, underlaymentCov, dripStock, valleyLf, wallLf, metalNotes, chamColor, panelCov, hStock, includeGutters, includeRidgeVent, optionalNotes, includeFp, fpW, fpH, fpD, fpOW, fpOH, fpSides, fpStonePiece, stoneBoxCov, adhesiveCov]);
 
-  const geo = useMemo(() => roofGeometry(input), [input]);
-  const sh = useMemo(() => sheathing(input, sheathingWaste), [input, sheathingWaste]);
-
-  // Build the seed BOM from the current calculations
-  const seed: Group[] = useMemo(() => {
-    const raf = rafters(input);
-    const beams = beamTotalLf(input);
-    const perim = Math.ceil(roofPerimeterLf(input));
-    const cc = chamClad(input, { panel_coverage_width_ft: panelCov, h_channel_stock_length_ft: hStock });
-    const r = cc.recommended;
-    const panels = r.rows * r.segments_per_row;
-    const asp = roofing === "asphalt" ? asphaltShingles(input, {
-      underlayment_roll_coverage_sqft: underlaymentCov, drip_edge_stock_length_ft: dripStock,
-      ice_water_valley_length_ft: valleyLf, ice_water_wall_intersection_length_ft: wallLf,
-    }) : null;
-    const fp = includeFp ? fireplace(
-      { fireplace_total_width_ft: fpW, fireplace_total_height_ft: fpH, fireplace_total_depth_ft: fpD, fireplace_opening_width_ft: fpOW, fireplace_opening_height_ft: fpOH, stone_sides: fpSides, stone_piece_selection: fpStonePiece },
-      { stone_coverage_per_box_sqft: typeof stoneBoxCov === "number" ? stoneBoxCov : undefined, veneer_adhesive_coverage_sqft: adhesiveCov }
-    ) : null;
-
-    const L = (description: string, size: string, qty: number, unit: string, brand = "", color = ""): Line =>
-      ({ id: uid(), description, size, brand, color, qty, unit });
-    const ft = (x: number) => `${x}'`;
-    const ledgerPcs = attachment === "attached" ? Math.max(1, Math.ceil(geo.effective_roof_width_ft / 8)) : 0;
-    const groups: Group[] = [];
-
-    groups.push({ title: "FOOTING", lines: [
-      L("Concrete 3000 psi", "80lb", 0, "bags"),
-      L("Sonotube 16\"", "12'", 0, "Each"),
-      L("Sonotube 24\"", "12'", 0, "Each"),
-    ]});
-    groups.push({ title: "BEAM", lines: [
-      L("2x10", "16'", piecesFor(beams, 16), "Each"),
-      L("5.25x12 LVL beam", "", 0, "Each"),
-      L("3.5x16 LVL beam", "", 0, "Each"),
-      L("5.5x16 LVL beam", "", 0, "Each"),
-      L("5.25x16 PSL beam", "", 0, "Each"),
-    ]});
-    groups.push({ title: "RAFTERS", lines: [
-      L(raf.recommended_rafter_size, ft(stockLen(raf.rafter_length_ft)), raf.rafter_quantity, "Each"),
-    ]});
-    groups.push({ title: "FASCIA", lines: [
-      L("1x8 PVC", "16'", piecesFor(perim, 16), "Each", "", "White"),
-      L("2x6", "16'", piecesFor(perim, 16), "Each"),
-      L("1x6 Azek Captive PVC", "16'", 0, "Each", "Azek", "Black"),
-      L("1x12 Azek Captive PVC", "16'", 0, "Each", "Azek", "Black"),
-      L("1x8 Composite", "12'", 0, "Each", "Trex Select", ""),
-      L("Fascia screws", "", 0, "box", "Trex Enhance", ""),
-    ]});
-    groups.push({ title: "SHEATHING", lines: [
-      L("1/2\" CDX plywood", "4x8", sh.sheathing_quantity, "Each"),
-    ]});
-    groups.push({ title: "HARDWARE", lines: [
-      L("Hurricane ties H2.5A", "", raf.rafter_quantity, "Each"),
-      L("Rafter hangers", "2x8", 0, "Each"),
-      L("Beam hangers HUC210-3", "", 0, "Each"),
-      L("ABU66Z post base", "", 0, "Each"),
-      L("AC6Z post cap", "", 0, "Each"),
-      L("4\" flat head structural screws", "250 ct", ledgerPcs > 0 ? 1 : 1, "Bucket"),
-      L("Ledger flashing drip edge", "8'", ledgerPcs, "Each"),
-      L("12\" ledger flashing tape", "50'", attachment === "attached" ? 1 : 0, "Each"),
-      L("Galvanized ridge strap", "50'", 0, "Each"),
-      L("3\" galv. collated framing nails", "2000 ct", 0, "box"),
-    ]});
-    const ceiling: Line[] = [
-      L("ChamClad 1x6 solid soffit", ft(r.recommended_panel_length_ft), panels, "Each", "ChamClad", chamColor),
-      L("ChamClad J-Channel", ft(r.recommended_panel_length_ft), 0, "Each", "ChamClad", chamColor),
-      L("ChamClad screws", "", 0, "box", "ChamClad"),
-      L("ChamClad column wrap", "10'", 0, "Each", "ChamClad"),
-    ];
-    if (r.seam_required && r.h_channel_quantity > 0) ceiling.push(L("H-channel", ft(hStock), r.h_channel_quantity, "Each", "ChamClad", chamColor));
-    groups.push({ title: "ROOF CEILING", lines: ceiling });
-
-    if (asp) {
-      const roof: Line[] = [
-        L("Shingle bundles (15% waste)", "", asp.shingle_bundle_quantity, "bundles"),
-        L("Synthetic underlayment", "", asp.underlayment_quantity ?? 0, "rolls"),
-        L("Grace ice & water shield", "", Math.ceil(asp.ice_water_total_lf), "lin ft"),
-        L("Aluminum drip edge (10% waste)", ft(dripStock), asp.drip_edge_quantity ?? 0, "Each"),
-        L("Starter shingle strip (10% waste)", "", Math.ceil(asp.starter_order_lf), "lin ft"),
-        L("Galvanized coil roofing nails", "", asp.roofing_nail_boxes, "box"),
-        L("Exterior roofing sealant", "", 1, "box"),
-      ];
-      if (asp.ridge_cap_lf > 0) roof.splice(5, 0, L("Ridge cap shingles", "", Math.ceil(asp.ridge_cap_lf), "lin ft"));
-      if (asp.include_headwall_flashing) roof.push(L("Headwall flashing", "", Math.ceil(asp.headwall_flashing_lf), "lin ft"));
-      groups.push({ title: "ROOFING", lines: roof });
-    } else {
-      groups.push({ title: "ROOFING", lines: [L(metalNotes || "Metal roofing — manual (coming later)", "", 0, "—")] });
-    }
-
-    groups.push({ title: "ELECTRICAL", lines: [
-      L("Tru-Scapes Dot Light TS-15DOT-SS", "", 0, "Each"),
-      L("Post Cap Light TS-C125", "", 0, "Each", "", "TBD"),
-    ]});
-
-    const opt: Line[] = [];
-    if (includeGutters) opt.push(L("Gutters & downspouts", "", perim, "lin ft"));
-    if (includeRidgeVent && roofType === "gable") opt.push(L("Ridge vent", "", Math.ceil(geo.effective_roof_length_ft), "lin ft"));
-    if (optionalNotes) opt.push(L(optionalNotes, "", 1, "Each"));
-    if (opt.length === 0) opt.push(L("No optional items", "", 0, "—"));
-    groups.push({ title: "OPTIONAL ITEMS", lines: opt });
-
-    if (fp) {
-      const f: Line[] = [
-        L("20-ga metal stud 3.5\"", "10'", fp.metal_stud_quantity, "Each"),
-        L("20-ga metal track 3.5\" (10% waste)", "10'", fp.metal_track_quantity, "Each"),
-        L("3x5 cement board ½\" (10% waste)", "", fp.cement_board_quantity, "Each"),
-        L("Cement board screws", "", fp.cement_board_screw_box_quantity, "box"),
-        L(`MSI stone veneer${fp.stone_box_quantity === null ? " (enter box coverage)" : ""}`, "", fp.stone_box_quantity ?? 0, "box", "MSI", "TBC"),
-        L("Stone veneer adhesive", "", fp.veneer_adhesive_quantity ?? 0, "Each"),
-      ];
-      if (fp.fireplace_stone_piece_quantity > 0) f.push(L(`Fireplace stone 2x12 (${fpStonePiece.replace("_", " & ")})`, "6'", fp.fireplace_stone_piece_quantity, "Each", "", "TBC"));
-      f.push(L("Ventless gas fireplace appliance", "", 1, "Each"));
-      groups.push({ title: "FIREPLACE (OPTIONAL)", lines: f });
-    }
-    return groups;
-  }, [input, panelCov, hStock, roofing, underlaymentCov, dripStock, valleyLf, wallLf, includeFp, fpW, fpH, fpD, fpOW, fpOH, fpSides, fpStonePiece, stoneBoxCov, adhesiveCov, roofType, attachment, chamColor, metalNotes, includeGutters, includeRidgeVent, optionalNotes, sheathingWaste, sh, geo]);
+  // Build the seed BOM from the current calculations (shared pure builder)
+  const seed: Group[] = useMemo(() => buildRoofBom(roofConfig), [roofConfig]);
 
   // Editable working BOM (seeded once; regenerate to refresh from inputs)
   const [bom, setBom] = useState<Group[]>(seed);

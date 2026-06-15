@@ -6,6 +6,8 @@ import type { BomItem } from "@/lib/types";
 import { useWizardStore, useEstimate } from "@/lib/stores/wizard-store";
 import { useEmbed } from "@/lib/contexts/embed-context";
 import { saveEstimate, updateEstimate } from "@/lib/actions/estimates";
+import { emailBomToSupplier, requestWehrungsReview } from "@/lib/actions/material-list";
+import { buildCombinedBom, includesDeck, includesRoof } from "@/lib/combined-bom";
 import { createHomeownerCheckoutSession, type HomeownerProduct } from "@/lib/actions/purchases";
 import { EmbedEmailModal } from "@/components/deck-estimator/embed-email-modal";
 import { deckingBrands } from "@/lib/catalog";
@@ -110,10 +112,36 @@ const CATEGORY_COLORS: Record<string, { bg: string; border: string; text: string
   "add-ons": { bg: "bg-rose-50 dark:bg-rose-950/30", border: "border-rose-200 dark:border-rose-800", text: "text-rose-800 dark:text-rose-200" },
 };
 
+const LABEL_TO_CAT: Record<string, string> = {
+  Foundation: "foundation",
+  Framing: "framing",
+  Decking: "decking",
+  Fasteners: "fasteners",
+  Fascia: "fascia",
+  Railing: "railing",
+  "Add-ons": "add-ons",
+};
+const baseLabel = (title: string) => title.replace(/^Deck — /, "").replace(/^Roof — /, "");
+
+function sectionStyle(title: string) {
+  const cat = LABEL_TO_CAT[baseLabel(title)];
+  if (cat && CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
+  // Roof / custom sections — neutral sky tone.
+  return { bg: "bg-sky-50 dark:bg-sky-950/30", border: "border-sky-200 dark:border-sky-800", text: "text-sky-800 dark:text-sky-200" };
+}
+function sectionNote(title: string, getRailingNote: () => string): string {
+  const cat = LABEL_TO_CAT[baseLabel(title)];
+  if (!cat) return "";
+  if (cat === "railing") return getRailingNote();
+  return CATEGORY_NOTES[cat] ?? "";
+}
+
 export function ReviewStep() {
   const formData = useWizardStore((s) => s.formData);
   const editingEstimateId = useWizardStore((s) => s.editingEstimateId);
   const estimate = useEstimate();
+  // Deck-calc warnings are only meaningful when the scope includes a deck.
+  const warnings = includesDeck(formData.scope) ? estimate.warnings : [];
   const embed = useEmbed();
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [editedQuantities, setEditedQuantities] = useState<Record<string, number>>({});
@@ -139,30 +167,40 @@ export function ReviewStep() {
     [selectedBrand, formData.deckingCollection]
   );
 
-  // Combine estimate BOM with edited quantities and custom items, excluding deleted
-  const finalBom = useMemo(() => {
-    const editedBom = estimate.bom
-      .filter((item) => !deletedItems.has(item.id))
-      .map((item) => ({
-        ...item,
-        quantity: editedQuantities[item.id] ?? item.quantity,
-      }));
-    return [...editedBom, ...customItems];
-  }, [estimate.bom, editedQuantities, customItems, deletedItems]);
+  // Combined deck + roof BOM, grouped into display sections (honors scope).
+  const baseSections = useMemo(() => buildCombinedBom(formData), [formData]);
 
-  // Group BOM items by category
-  const groupedBom = useMemo(() => {
-    const groups: Record<string, BomItem[]> = {};
-
-    for (const item of finalBom) {
-      if (!groups[item.category]) {
-        groups[item.category] = [];
-      }
-      groups[item.category].push(item);
+  // Apply edits (qty/notes resolved at render), drop deleted, append custom items by section.
+  const finalSections = useMemo(() => {
+    const sections = baseSections.map((s) => ({
+      title: s.title,
+      items: s.items.filter((i) => !deletedItems.has(i.id)),
+    }));
+    const bySection: Record<string, BomItem[]> = {};
+    for (const ci of customItems) {
+      const key = ci.section ?? "Other";
+      (bySection[key] ??= []).push(ci);
     }
+    for (const [title, items] of Object.entries(bySection)) {
+      const existing = sections.find((s) => s.title === title);
+      if (existing) existing.items.push(...items);
+      else sections.push({ title, items });
+    }
+    return sections.filter((s) => s.items.length > 0);
+  }, [baseSections, deletedItems, customItems]);
 
-    return groups;
-  }, [finalBom]);
+  // Flat list (qty/notes edits applied) — used by copy/email helpers.
+  const finalBom = useMemo(
+    () =>
+      finalSections.flatMap((s) =>
+        s.items.map((i) => ({
+          ...i,
+          quantity: editedQuantities[i.id] ?? i.quantity,
+          notes: editedItemNotes[i.id] ?? i.notes,
+        }))
+      ),
+    [finalSections, editedQuantities, editedItemNotes]
+  );
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -216,7 +254,8 @@ export function ReviewStep() {
 
     const newItem: BomItem = {
       id: `custom-${generateStairId()}`,
-      category: newItemCategory as BomItem["category"],
+      category: "other",
+      section: newItemCategory, // section title to attach to
       description: newItemDescription,
       size: newItemSize || undefined,
       quantity: newItemQuantity,
@@ -250,35 +289,37 @@ export function ReviewStep() {
       "",
     ];
 
-    for (const category of CATEGORY_ORDER) {
-      const items = groupedBom[category];
-      if (!items || items.length === 0) continue;
-
-      lines.push(CATEGORY_LABELS[category].toUpperCase());
+    for (const section of finalSections) {
+      lines.push(section.title.toUpperCase());
       lines.push("-".repeat(30));
 
-      for (const item of items) {
+      for (const item of section.items) {
         const size = item.size ? ` (${item.size})` : "";
+        const bc = [item.brand, item.color].filter(Boolean).join(" ");
+        const bcStr = bc ? ` {${bc}}` : "";
         const note = editedItemNotes[item.id] ?? item.notes;
         const noteStr = note ? ` [${note}]` : "";
-        lines.push(`  ${item.quantity} ${item.unit} - ${item.description}${size}${noteStr}`);
+        const qty = editedQuantities[item.id] ?? item.quantity;
+        lines.push(`  ${qty} ${item.unit} - ${item.description}${size}${bcStr}${noteStr}`);
       }
       lines.push("");
     }
 
-    if (estimate.warnings.length > 0) {
+    if (warnings.length > 0) {
       lines.push("WARNINGS");
       lines.push("-".repeat(30));
-      for (const warning of estimate.warnings) {
+      for (const warning of warnings) {
         lines.push(`  ! ${warning}`);
       }
       lines.push("");
     }
 
-    lines.push("ASSUMPTIONS");
-    lines.push("-".repeat(30));
-    for (const assumption of estimate.assumptions) {
-      lines.push(`  - ${assumption}`);
+    if (includesDeck(formData.scope)) {
+      lines.push("ASSUMPTIONS");
+      lines.push("-".repeat(30));
+      for (const assumption of estimate.assumptions) {
+        lines.push(`  - ${assumption}`);
+      }
     }
 
     lines.push("");
@@ -455,6 +496,67 @@ export function ReviewStep() {
     toast.success(`${label} — request submitted.`);
   };
 
+  // ── Contractor material-list actions ──
+  const isContractor = roleBase === "contractor";
+  const [supplierEmail, setSupplierEmail] = useState("");
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+
+  const ensureSaved = async (saveStatus: "draft" | "completed"): Promise<string | null> => {
+    if (editingEstimateId) {
+      const r = await updateEstimate(editingEstimateId, formData, { status: saveStatus });
+      if (!r.success) {
+        toast.error("Failed to save", { description: r.error });
+        return null;
+      }
+      return editingEstimateId;
+    }
+    if (savedEstimateId) return savedEstimateId;
+    const r = await saveEstimate(formData, existingProjectId, { status: saveStatus });
+    if (!r.success) {
+      toast.error("Failed to save", { description: r.error });
+      return null;
+    }
+    setSavedEstimateId(r.estimateId ?? null);
+    return r.estimateId ?? null;
+  };
+
+  const handleSaveDraft = () =>
+    startSaveTransition(async () => {
+      const id = await ensureSaved("draft");
+      if (id) toast.success("Saved as draft");
+    });
+
+  const handleFinishList = () =>
+    startSaveTransition(async () => {
+      const id = await ensureSaved("completed");
+      if (id) {
+        toast.success("Material list finished");
+        router.push("/contractor/estimates");
+      }
+    });
+
+  const handleEmailSupplier = () =>
+    startSaveTransition(async () => {
+      const id = await ensureSaved("completed");
+      if (!id) return;
+      const r = await emailBomToSupplier(id, supplierEmail || undefined);
+      if (r.success) {
+        toast.success(`Material list emailed${supplierEmail ? ` to ${supplierEmail}` : ""}`);
+        setEmailDialogOpen(false);
+      } else {
+        toast.error("Email failed", { description: r.error });
+      }
+    });
+
+  const handleRequestReview = () =>
+    startSaveTransition(async () => {
+      const id = await ensureSaved("completed");
+      if (!id) return;
+      const r = await requestWehrungsReview(id);
+      if (r.success) toast.success("Wehrung's review requested");
+      else toast.error("Request failed", { description: r.error });
+    });
+
   return (
     <div className="space-y-8">
 <div>
@@ -487,7 +589,7 @@ export function ReviewStep() {
         </div>
       </div>
 
-      {estimate.warnings.length > 0 && (
+      {warnings.length > 0 && (
         <Alert variant="destructive" className="print:hidden">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Manual Review Required</AlertTitle>
@@ -497,7 +599,7 @@ export function ReviewStep() {
               review before order release.
             </p>
             <ul className="list-inside list-disc space-y-1">
-              {estimate.warnings.map((warning, i) => (
+              {warnings.map((warning, i) => (
                 <li key={i}>{warning}</li>
               ))}
             </ul>
@@ -530,22 +632,37 @@ export function ReviewStep() {
             </p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Deck Type</p>
-            <p className="text-base font-semibold capitalize">{formData.deckType}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dimensions</p>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Scope</p>
             <p className="text-base font-semibold">
-              {formData.deckWidthFt}&apos; W x {formData.deckProjectionFt}&apos; D
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {estimate.derived.deckAreaSf} sq ft
+              {formData.scope === "deck" ? "Deck only" : formData.scope === "roof" ? "Roof only" : "Deck + Roof"}
             </p>
           </div>
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Height</p>
-            <p className="text-base font-semibold">{formData.deckHeightIn}&quot; above grade</p>
-          </div>
+          {includesDeck(formData.scope) && (
+            <>
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Deck</p>
+                <p className="text-base font-semibold">
+                  {formData.deckWidthFt}&apos; W x {formData.deckProjectionFt}&apos; D{" "}
+                  <span className="capitalize text-muted-foreground">({formData.deckType})</span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {estimate.derived.deckAreaSf} sq ft · {formData.deckHeightIn}&quot; above grade
+                </p>
+              </div>
+            </>
+          )}
+          {includesRoof(formData.scope) && formData.roof && (
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Roof</p>
+              <p className="text-base font-semibold">
+                {formData.roof.widthFt}&apos; x {formData.roof.lengthFt}&apos;{" "}
+                <span className="capitalize text-muted-foreground">({formData.roof.roofType})</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {formData.roof.pitch}/12 pitch · {formData.roof.roofing === "asphalt" ? "Asphalt" : "Metal"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -569,19 +686,21 @@ export function ReviewStep() {
           </div>
         </div>
 
-        {CATEGORY_ORDER.map((category) => {
-          const items = groupedBom[category];
-          if (!items || items.length === 0) return null;
-          const colors = CATEGORY_COLORS[category] || { bg: "bg-muted/30", border: "border-border", text: "text-foreground" };
+        {finalSections.map((section) => {
+          const colors = sectionStyle(section.title);
+          const note = sectionNote(section.title, getRailingNote);
+          const showBC = section.items.some((i) => i.brand || i.color);
 
           return (
-            <div key={category} className={`rounded-xl border ${colors.border} bg-card overflow-hidden print:rounded-none print:border-gray-300 print:mb-4 print-bom-section avoid-break`}>
+            <div key={section.title} className={`rounded-xl border ${colors.border} bg-card overflow-hidden print:rounded-none print:border-gray-300 print:mb-4 print-bom-section avoid-break`}>
               <div className={`border-b ${colors.border} px-5 py-4 flex items-center justify-between ${colors.bg} print:px-2 print:py-2 print:bg-gray-100`}>
                 <div className="flex-1 mr-4">
-                  <h4 className={`font-semibold text-base ${colors.text} print:text-black print:text-sm`}>{CATEGORY_LABELS[category]}</h4>
-                  <p className="text-xs text-muted-foreground mt-1 print:text-gray-600 print:mt-0 category-note">
-                    {category === "railing" ? getRailingNote() : CATEGORY_NOTES[category]}
-                  </p>
+                  <h4 className={`font-semibold text-base ${colors.text} print:text-black print:text-sm`}>{section.title}</h4>
+                  {note && (
+                    <p className="text-xs text-muted-foreground mt-1 print:text-gray-600 print:mt-0 category-note">
+                      {note}
+                    </p>
+                  )}
                 </div>
                 <Dialog>
                   <DialogTrigger asChild>
@@ -592,9 +711,9 @@ export function ReviewStep() {
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Add Item to {CATEGORY_LABELS[category]}</DialogTitle>
+                      <DialogTitle>Add Item to {section.title}</DialogTitle>
                       <DialogDescription>
-                        Add a custom item to this category.
+                        Add a custom item to this section.
                       </DialogDescription>
                     </DialogHeader>
                     <FieldGroup className="py-4">
@@ -638,6 +757,7 @@ export function ReviewStep() {
                               <SelectItem value="pack">pack</SelectItem>
                               <SelectItem value="lf">lf</SelectItem>
                               <SelectItem value="sf">sf</SelectItem>
+                              <SelectItem value="Each">Each</SelectItem>
                             </SelectContent>
                           </Select>
                         </Field>
@@ -650,7 +770,7 @@ export function ReviewStep() {
                       <DialogClose asChild>
                         <Button
                           onClick={() => {
-                            setNewItemCategory(category);
+                            setNewItemCategory(section.title);
                             addCustomItem();
                           }}
                         >
@@ -664,8 +784,10 @@ export function ReviewStep() {
               <Table className="print:text-xs">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[280px] print:w-auto">Description</TableHead>
+                    <TableHead className="w-[260px] print:w-auto">Description</TableHead>
                     <TableHead>Size</TableHead>
+                    {showBC && <TableHead>Brand</TableHead>}
+                    {showBC && <TableHead>Color</TableHead>}
                     <TableHead className="text-right w-[100px] print:w-[60px]">Qty</TableHead>
                     <TableHead>Unit</TableHead>
                     <TableHead>Notes</TableHead>
@@ -673,7 +795,7 @@ export function ReviewStep() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {items.map((item) => {
+                  {section.items.map((item) => {
                     const isCustom = item.id.startsWith("custom-");
                     const displayQty = editedQuantities[item.id] ?? item.quantity;
                     const displayNotes = editedItemNotes[item.id] ?? item.notes ?? "";
@@ -683,6 +805,8 @@ export function ReviewStep() {
                           {item.description}
                         </TableCell>
                         <TableCell className="print:text-xs print:py-1">{item.size || "-"}</TableCell>
+                        {showBC && <TableCell className="print:text-xs print:py-1">{item.brand || "-"}</TableCell>}
+                        {showBC && <TableCell className="print:text-xs print:py-1">{item.color || "-"}</TableCell>}
                         <TableCell className="text-right print:py-1">
                           <Input
                             type="number"
@@ -725,8 +849,8 @@ export function ReviewStep() {
         })}
       </div>
 
-      {/* Save / Email CTA — hidden in contractor demo + public showroom (actions below) */}
-      <div className={`flex justify-center ${isContractorDemo || isPublic ? "hidden" : ""}`}>
+      {/* Save / Email CTA — hidden in contractor demo + public showroom + contractor (actions below) */}
+      <div className={`flex justify-center ${isContractorDemo || isPublic || isContractor ? "hidden" : ""}`}>
         {embed.isEmbed ? (
           <Button
             size="lg"
@@ -759,8 +883,8 @@ export function ReviewStep() {
         <EmbedEmailModal open={emailModalOpen} onOpenChange={setEmailModalOpen} />
       )}
 
-      {/* Structural Summary */}
-      <div className="rounded-xl border-2 border-border bg-card p-6 shadow-sm">
+      {/* Structural Summary (deck only) */}
+      <div className={`rounded-xl border-2 border-border bg-card p-6 shadow-sm ${includesDeck(formData.scope) ? "" : "hidden"}`}>
         <h3 className="mb-6 text-base font-semibold uppercase tracking-wide text-foreground">
           Structural Summary
         </h3>
@@ -801,7 +925,7 @@ export function ReviewStep() {
       </div>
 
       {/* Success Footer or Request Actions */}
-      {estimate.warnings.length === 0 ? (
+      {warnings.length === 0 ? (
         <div className="flex items-center gap-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-5 print:hidden">
           <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
           <div>
@@ -813,8 +937,8 @@ export function ReviewStep() {
         </div>
       ) : null}
 
-      {/* MVP Action Buttons — homeowner upsells (hidden in embed + contractor demo + public) */}
-      {!embed.isEmbed && !isContractorDemo && !isPublic && (
+      {/* MVP Action Buttons — homeowner upsells (homeowner role only) */}
+      {!embed.isEmbed && !isContractorDemo && !isPublic && !isContractor && (
         <div className="border-t-2 border-border pt-8 print:hidden">
           <h3 className="text-base font-semibold uppercase tracking-wide text-foreground mb-6">
             Next Steps
@@ -1018,6 +1142,103 @@ export function ReviewStep() {
               <span className="text-xs text-muted-foreground text-center">
                 Return to your dashboard
               </span>
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Contractor material-list actions */}
+      {!embed.isEmbed && !isPublic && !isContractorDemo && isContractor && (
+        <div className="border-t-2 border-border pt-8 print:hidden">
+          <h3 className="text-base font-semibold uppercase tracking-wide text-foreground mb-1">
+            Material List Actions
+          </h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            Save your progress, finish the list, print it, email it to your supplier, or request a Wehrung&apos;s review.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <Button
+              variant="outline"
+              onClick={handleSaveDraft}
+              disabled={isSaving}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              {isSaving ? <Loader2 className="h-7 w-7 text-primary animate-spin" /> : <Save className="h-7 w-7 text-primary" />}
+              <span className="font-semibold text-sm text-foreground">Save Draft</span>
+              <span className="text-xs text-muted-foreground text-center">Keep working later</span>
+            </Button>
+
+            <Button
+              onClick={handleFinishList}
+              disabled={isSaving}
+              className="h-auto py-6 flex flex-col items-center gap-3 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <CheckCircle2 className="h-7 w-7" />
+              <span className="font-semibold text-sm">Finish List</span>
+              <span className="text-xs opacity-90 text-center">Mark the BOM complete</span>
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={handlePrint}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <Printer className="h-7 w-7 text-primary" />
+              <span className="font-semibold text-sm text-foreground">Print</span>
+              <span className="text-xs text-muted-foreground text-center">Printable material list</span>
+            </Button>
+
+            <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={isSaving}
+                  className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+                >
+                  <Mail className="h-7 w-7 text-primary" />
+                  <span className="font-semibold text-sm text-foreground">Email to Supplier</span>
+                  <span className="text-xs text-muted-foreground text-center">Send the list by email</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Email material list</DialogTitle>
+                  <DialogDescription>
+                    Enter the supplier&apos;s email. We&apos;ll send the full material list.
+                  </DialogDescription>
+                </DialogHeader>
+                <FieldGroup className="py-2">
+                  <Field>
+                    <FieldLabel>Supplier email</FieldLabel>
+                    <Input
+                      type="email"
+                      placeholder="orders@your-supplier.com"
+                      value={supplierEmail}
+                      onChange={(e) => setSupplierEmail(e.target.value)}
+                    />
+                  </Field>
+                </FieldGroup>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button onClick={handleEmailSupplier} disabled={isSaving}>
+                    {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                    Send
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <Button
+              variant="outline"
+              onClick={handleRequestReview}
+              disabled={isSaving}
+              className="h-auto py-6 flex flex-col items-center gap-3 border-2 hover:border-primary hover:bg-primary/5 text-foreground"
+            >
+              <ClipboardCheck className="h-7 w-7 text-primary" />
+              <span className="font-semibold text-sm text-foreground">Request Wehrung&apos;s Review</span>
+              <span className="text-xs text-muted-foreground text-center">Confirm availability &amp; pricing</span>
             </Button>
           </div>
         </div>

@@ -17,8 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, FileText, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
+import { scopeLabel } from "@/lib/project-status";
 
 const CATEGORY_LABELS: Record<string, string> = {
   foundation: "Foundation",
@@ -29,16 +30,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   railing: "Railing",
   "add-ons": "Add-ons",
 };
-
-const CATEGORY_ORDER = [
-  "foundation",
-  "framing",
-  "decking",
-  "fasteners",
-  "fascia",
-  "railing",
-  "add-ons",
-];
 
 export default async function ContractorEstimateDetailPage({
   params,
@@ -54,12 +45,17 @@ export default async function ContractorEstimateDetailPage({
     (a: any, b: any) => a.sort_order - b.sort_order
   );
 
-  const grouped = lineItems.reduce((acc: Record<string, any[]>, item: any) => {
-    const cat = item.category || "other";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(item);
-    return acc;
-  }, {});
+  // Group by display section in line-item order (deck categories + roof sections)
+  const sections: { title: string; items: any[] }[] = [];
+  for (const item of lineItems as any[]) {
+    const title = item.section || CATEGORY_LABELS[item.category] || item.category || "Items";
+    let s = sections.find((x) => x.title === title);
+    if (!s) {
+      s = { title, items: [] };
+      sections.push(s);
+    }
+    s.items.push(item);
+  }
 
   const stairs = (estimate.estimate_stair_sections ?? []).sort(
     (a: any, b: any) => a.sort_order - b.sort_order
@@ -76,19 +72,13 @@ export default async function ContractorEstimateDetailPage({
       </Link>
 
       <PageHeader
-        title={estimate.project_name || "Untitled Estimate"}
-        description={`${estimate.deck_width_ft}' × ${estimate.deck_projection_ft}' ${estimate.deck_type} deck — ${estimate.total_area_sf ?? "—"} sf • ${lineItems.length} BOM items`}
+        title={estimate.project_name || "Untitled Project"}
+        description={`${scopeLabel(estimate.scope)}${estimate.deck_width_ft ? ` — ${estimate.deck_width_ft}' × ${estimate.deck_projection_ft}' deck` : ""} • ${lineItems.length} BOM items`}
       >
-        <Link href={`/estimate?edit=${id}`}>
+        <Link href={`/estimate/pro?edit=${id}&role=contractor`}>
           <Button size="sm" variant="outline" className="gap-2">
             <Pencil className="h-4 w-4" />
-            Edit Estimate
-          </Button>
-        </Link>
-        <Link href={`/contractor/estimates/${id}/quote`}>
-          <Button size="sm" className="gap-2">
-            <FileText className="h-4 w-4" />
-            Create Quote
+            Open / Edit
           </Button>
         </Link>
       </PageHeader>
@@ -113,23 +103,33 @@ export default async function ContractorEstimateDetailPage({
               </div>
             )}
             <div>
-              <p className="text-muted-foreground">Deck Type</p>
-              <p className="font-medium capitalize">{estimate.deck_type}</p>
+              <p className="text-muted-foreground">Scope</p>
+              <p className="font-medium">{scopeLabel(estimate.scope)}</p>
             </div>
-            <div>
-              <p className="text-muted-foreground">Dimensions</p>
-              <p className="font-medium">
-                {estimate.deck_width_ft}&apos; × {estimate.deck_projection_ft}&apos;
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Height</p>
-              <p className="font-medium">{estimate.deck_height_in}&quot;</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Joist Spacing</p>
-              <p className="font-medium">{estimate.joist_spacing_in}&quot; o.c.</p>
-            </div>
+            {estimate.deck_type && (
+              <>
+                <div>
+                  <p className="text-muted-foreground">Deck</p>
+                  <p className="font-medium capitalize">
+                    {estimate.deck_width_ft}&apos; × {estimate.deck_projection_ft}&apos; {estimate.deck_type}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Height / Joists</p>
+                  <p className="font-medium">
+                    {estimate.deck_height_in}&quot; · {estimate.joist_spacing_in}&quot; o.c.
+                  </p>
+                </div>
+              </>
+            )}
+            {estimate.roof_config && (
+              <div>
+                <p className="text-muted-foreground">Roof</p>
+                <p className="font-medium capitalize">
+                  {estimate.roof_config.widthFt}&apos; × {estimate.roof_config.lengthFt}&apos; {estimate.roof_config.roofType}
+                </p>
+              </div>
+            )}
             {estimate.decking_brand && (
               <div>
                 <p className="text-muted-foreground">Surface</p>
@@ -195,18 +195,16 @@ export default async function ContractorEstimateDetailPage({
         </Card>
       )}
 
-      {/* BOM by Category */}
-      {CATEGORY_ORDER.map((cat) => {
-        const items = grouped[cat];
-        if (!items || items.length === 0) return null;
-
+      {/* BOM by section (deck categories + roof sections) */}
+      {sections.map((section) => {
+        const showBC = section.items.some((i) => i.brand || i.color);
         return (
-          <Card key={cat}>
+          <Card key={section.title}>
             <CardHeader>
               <CardTitle className="text-base">
-                {CATEGORY_LABELS[cat] ?? cat}
+                {section.title}
                 <Badge variant="secondary" className="ml-2">
-                  {items.length}
+                  {section.items.length}
                 </Badge>
               </CardTitle>
             </CardHeader>
@@ -217,13 +215,15 @@ export default async function ContractorEstimateDetailPage({
                     <TableRow>
                       <TableHead>Description</TableHead>
                       <TableHead>Size</TableHead>
+                      {showBC && <TableHead>Brand</TableHead>}
+                      {showBC && <TableHead>Color</TableHead>}
                       <TableHead className="text-right">Qty</TableHead>
                       <TableHead>Unit</TableHead>
                       <TableHead>Notes</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map((item: any) => (
+                    {section.items.map((item: any) => (
                       <TableRow key={item.id}>
                         <TableCell className="font-medium text-sm">
                           {item.description}
@@ -231,6 +231,12 @@ export default async function ContractorEstimateDetailPage({
                         <TableCell className="text-sm text-muted-foreground">
                           {item.size || "—"}
                         </TableCell>
+                        {showBC && (
+                          <TableCell className="text-sm text-muted-foreground">{item.brand || "—"}</TableCell>
+                        )}
+                        {showBC && (
+                          <TableCell className="text-sm text-muted-foreground">{item.color || "—"}</TableCell>
+                        )}
                         <TableCell className="text-right font-mono text-sm">
                           {item.quantity}
                         </TableCell>
@@ -253,18 +259,12 @@ export default async function ContractorEstimateDetailPage({
       {/* Actions */}
       <div className="flex gap-3">
         <Link href="/contractor/estimates">
-          <Button variant="outline">Back to Estimates</Button>
+          <Button variant="outline">Back to Projects</Button>
         </Link>
-        <Link href={`/estimate?edit=${id}`}>
-          <Button variant="outline" className="gap-2">
-            <Pencil className="h-4 w-4" />
-            Edit Estimate
-          </Button>
-        </Link>
-        <Link href={`/contractor/estimates/${id}/quote`}>
+        <Link href={`/estimate/pro?edit=${id}&role=contractor`}>
           <Button className="gap-2">
-            <FileText className="h-4 w-4" />
-            Create Quote
+            <Pencil className="h-4 w-4" />
+            Open / Edit
           </Button>
         </Link>
       </div>
