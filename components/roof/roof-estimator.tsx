@@ -6,45 +6,63 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Hexagon, Printer, Home, Flame, PanelTop, Layers } from "lucide-react";
+import { Hexagon, Printer, Home, Footprints, Flame, PanelTop, CheckCircle2 } from "lucide-react";
 import {
   beamTotalLf, roofGeometry, rafters, roofPerimeterLf, sheathing, chamClad,
-  asphaltShingles, fireplace, fireplaceStoneAreas,
+  asphaltShingles, fireplace,
   type RoofInput, type RoofType, type RoofAttachment, type FireplaceStoneSelection,
 } from "@/lib/roof-calculations";
 
 type RoofingMaterial = "asphalt" | "metal";
 
+// ChamClad ceiling/soffit panel finishes. Swatches approximate the photo set;
+// drop real images into /public/chamclad and swap `swatch` for `img` later.
+const CHAMCLAD_BRAND = "ChamClad";
+const CHAMCLAD_COLORS: { name: string; swatch: string }[] = [
+  { name: "Whitewashed Oak", swatch: "#dad6cd" },
+  { name: "Natural Oak", swatch: "#b9986f" },
+  { name: "Honey", swatch: "#b06a36" },
+  { name: "Walnut", swatch: "#6a4126" },
+  { name: "Rustic Oak", swatch: "#a9763f" },
+  { name: "Light Oak", swatch: "#d9b481" },
+  { name: "Sand Oak", swatch: "#dcc197" },
+  { name: "Driftwood Grey", swatch: "#8a7a6c" },
+];
+
 interface BomLine { id: string; item: string; calc: number; unit: string; note?: string; }
-interface BomGroup { title: string; icon: React.ComponentType<{ className?: string }>; lines: BomLine[]; }
+interface BomGroup { title: string; lines: BomLine[]; }
 
 const n = (v: number, d = 0) => v.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
 
 export function RoofEstimator() {
-  // ── Roof ──
+  const [projectName, setProjectName] = useState("");
+  const [address, setAddress] = useState("");
+  const [deliveryDate, setDeliveryDate] = useState("");
+  // Roof
   const [roofType, setRoofType] = useState<RoofType>("gable");
   const [width, setWidth] = useState(24);
   const [length, setLength] = useState(16);
   const [pitch, setPitch] = useState(6);
   const [attachment, setAttachment] = useState<RoofAttachment>("freestanding");
-  // overhangs
   const [oL, setOL] = useState(1), [oR, setOR] = useState(1), [oF, setOF] = useState(1), [oRear, setORear] = useState(0);
   const [sheathingWaste, setSheathingWaste] = useState(4);
-
-  // ── Roofing ──
+  // Roofing
   const [roofing, setRoofing] = useState<RoofingMaterial>("asphalt");
   const [underlaymentCov, setUnderlaymentCov] = useState(1000);
   const [dripStock, setDripStock] = useState(10);
   const [valleyLf, setValleyLf] = useState(0);
   const [wallLf, setWallLf] = useState(0);
   const [metalNotes, setMetalNotes] = useState("");
-
-  // ── Ceiling / ChamClad ──
+  // Ceiling / ChamClad
   const [includeChamclad, setIncludeChamclad] = useState(false);
+  const [chamColor, setChamColor] = useState(CHAMCLAD_COLORS[0].name);
   const [panelCov, setPanelCov] = useState(1);
   const [hStock, setHStock] = useState(12);
-
-  // ── Fireplace ──
+  // Optional items
+  const [includeGutters, setIncludeGutters] = useState(false);
+  const [includeRidgeVent, setIncludeRidgeVent] = useState(false);
+  const [optionalNotes, setOptionalNotes] = useState("");
+  // Fireplace
   const [includeFp, setIncludeFp] = useState(false);
   const [fpW, setFpW] = useState(6), [fpH, setFpH] = useState(8), [fpD, setFpD] = useState(2);
   const [fpOW, setFpOW] = useState(3), [fpOH, setFpOH] = useState(2);
@@ -53,13 +71,9 @@ export function RoofEstimator() {
   const [stoneBoxCov, setStoneBoxCov] = useState<number | "">("");
   const [adhesiveCov, setAdhesiveCov] = useState(75);
 
-  // override store (lineId -> string)
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const setOverride = (id: string, v: string) => setOverrides((o) => ({ ...o, [id]: v }));
-  const finalOf = (l: BomLine) => {
-    const ov = overrides[l.id];
-    return ov !== undefined && ov !== "" ? Number(ov) : l.calc;
-  };
+  const finalOf = (l: BomLine) => { const ov = overrides[l.id]; return ov !== undefined && ov !== "" ? Number(ov) : l.calc; };
 
   const input: RoofInput = useMemo(() => ({
     roof_type: roofType, roof_width_ft: width, roof_length_ft: length, roof_pitch_rise: pitch,
@@ -81,31 +95,37 @@ export function RoofEstimator() {
     { stone_coverage_per_box_sqft: typeof stoneBoxCov === "number" ? stoneBoxCov : undefined, veneer_adhesive_coverage_sqft: adhesiveCov }
   ) : null), [includeFp, fpW, fpH, fpD, fpOW, fpOH, fpSides, fpStonePiece, stoneBoxCov, adhesiveCov]);
 
-  // ── Build BOM groups ──
+  // ── Roof BOM groups (exact order requested) ──
   const groups: BomGroup[] = useMemo(() => {
     const g: BomGroup[] = [];
-
-    g.push({ title: "Roof Framing & Structure", icon: Home, lines: [
-      { id: "beam", item: `Beam stock${roofType === "gable" ? " (width + length × 3)" : ""}`, calc: beams, unit: "lin ft", note: "Original dims, no overhang" },
-      { id: "rafter", item: `Rafters — ${raf.recommended_rafter_size} @ ${n(raf.rafter_length_ft, 1)}'`, calc: raf.rafter_quantity, unit: "pcs" },
-      { id: "perim2x6", item: "2×6 perimeter framing", calc: Math.ceil(perim), unit: "lin ft" },
+    g.push({ title: "BEAM", lines: [
+      { id: "beam", item: roofType === "gable" ? "Beam stock (width + length × 3)" : "Beam stock", calc: beams, unit: "lin ft", note: "Original dimensions, no overhang" },
+    ]});
+    g.push({ title: "RAFTERS", lines: [
+      { id: "rafter", item: `${raf.recommended_rafter_size} rafters @ ${n(raf.rafter_length_ft, 1)}′`, calc: raf.rafter_quantity, unit: "pcs", note: roofType === "gable" ? `${(raf as any).rafters_per_side} per side × 2` : "16″ OC" },
+    ]});
+    g.push({ title: "FASCIA", lines: [
       { id: "fascia", item: "1×8 fascia", calc: Math.ceil(perim), unit: "lin ft" },
+      { id: "perim2x6", item: "2×6 perimeter framing", calc: Math.ceil(perim), unit: "lin ft" },
+    ]});
+    g.push({ title: "SHEATHING", lines: [
       { id: "sheath", item: `Roof sheathing (incl. +${sheathingWaste} waste)`, calc: sh.sheathing_quantity, unit: "sheets" },
     ]});
-
+    g.push({ title: "HARDWARE", lines: [
+      { id: "ties", item: "Hurricane / rafter ties", calc: raf.rafter_quantity, unit: "pcs" },
+      { id: "structscrew", item: "Structural screws", calc: 1, unit: "lot" },
+      ...(attachment === "attached" ? [{ id: "ledger_hw", item: "Ledger connection hardware", calc: 1, unit: "lot" }] : []),
+    ]});
     if (cc) {
       const r = cc.recommended;
       const panels = r.rows * r.segments_per_row;
       const lines: BomLine[] = [
-        { id: "cc_panel", item: `ChamClad panels — ${r.recommended_panel_length_ft}' (Option ${r.label}: ${r.description.toLowerCase()})`, calc: panels, unit: "panels" },
+        { id: "cc_panel", item: `${CHAMCLAD_BRAND} ${r.recommended_panel_length_ft}′ panel — ${chamColor}`, calc: panels, unit: "panels", note: `${r.seam_required ? "Seam required" : "Seam-free"} · Option ${r.label}` },
       ];
-      if (r.seam_required && r.h_channel_quantity > 0) {
-        lines.push({ id: "cc_h", item: `H-channel — ${n(r.h_channel_total_lf, 0)} lf total`, calc: r.h_channel_quantity, unit: "pcs", note: `${r.h_channel_lines} seam line(s)` });
-      }
-      g.push({ title: `ChamClad Ceiling — ${r.seam_required ? "seam required" : "seam-free"}`, icon: PanelTop, lines });
+      if (r.seam_required && r.h_channel_quantity > 0) lines.push({ id: "cc_h", item: `H-channel (${n(r.h_channel_total_lf, 0)} lf, ${r.h_channel_lines} seam line(s))`, calc: r.h_channel_quantity, unit: "pcs" });
+      g.push({ title: "ROOF CEILING", lines });
     }
-
-    if (asp) {
+    if (roofing === "asphalt" && asp) {
       const lines: BomLine[] = [
         { id: "shingles", item: `Shingle bundles (~${n(asp.roofing_squares, 1)} sq, 15% waste)`, calc: asp.shingle_bundle_quantity, unit: "bundles" },
         { id: "underlay", item: "Synthetic underlayment", calc: asp.underlayment_quantity ?? 0, unit: "rolls" },
@@ -117,37 +137,40 @@ export function RoofEstimator() {
       ];
       if (asp.ridge_cap_lf > 0) lines.splice(5, 0, { id: "ridge", item: "Ridge cap shingles", calc: Math.ceil(asp.ridge_cap_lf), unit: "lin ft" });
       if (asp.include_headwall_flashing) lines.push({ id: "headwall", item: "Headwall flashing (attached)", calc: Math.ceil(asp.headwall_flashing_lf), unit: "lin ft" });
-      g.push({ title: "Asphalt Roofing", icon: Layers, lines });
+      g.push({ title: "ROOFING", lines });
+    } else if (roofing === "metal") {
+      g.push({ title: "ROOFING", lines: [{ id: "metal", item: "Metal roofing — manual list (coming later)", calc: 0, unit: "—", note: metalNotes || "Add materials in the Roofing notes field" }] });
     }
+    // OPTIONAL ITEMS
+    const opt: BomLine[] = [];
+    if (includeGutters) opt.push({ id: "gutters", item: "Gutters & downspouts", calc: Math.ceil(perim), unit: "lin ft" });
+    if (includeRidgeVent && roofType === "gable") opt.push({ id: "ridgevent", item: "Ridge vent", calc: Math.ceil(geo.effective_roof_length_ft), unit: "lin ft" });
+    if (opt.length === 0) opt.push({ id: "opt_none", item: optionalNotes || "No optional items selected", calc: 0, unit: "—" });
+    g.push({ title: "OPTIONAL ITEMS", lines: opt });
 
     if (fp) {
       const lines: BomLine[] = [
-        { id: "fp_stud", item: "20-ga metal stud 3.5\"×10'", calc: fp.metal_stud_quantity, unit: "pcs" },
-        { id: "fp_track", item: "20-ga metal track 3.5\"×10' (10% waste)", calc: fp.metal_track_quantity, unit: "pcs" },
-        { id: "fp_cb", item: "Cement board 3'×5'×½\" (10% waste)", calc: fp.cement_board_quantity, unit: "boards" },
+        { id: "fp_stud", item: "20-ga metal stud 3.5″×10′", calc: fp.metal_stud_quantity, unit: "pcs" },
+        { id: "fp_track", item: "20-ga metal track 3.5″×10′ (10% waste)", calc: fp.metal_track_quantity, unit: "pcs" },
+        { id: "fp_cb", item: "Cement board 3′×5′×½″ (10% waste)", calc: fp.cement_board_quantity, unit: "boards" },
         { id: "fp_screw", item: "Cement board screws", calc: fp.cement_board_screw_box_quantity, unit: "boxes" },
-        { id: "fp_stone", item: `MSI stone veneer${fp.stone_box_quantity === null ? ` — enter box coverage (need ${n(fp.fireplace_stone_order_sqft, 1)} sqft)` : ""}`, calc: fp.stone_box_quantity ?? 0, unit: "boxes", note: `Order area ${n(fp.fireplace_stone_order_sqft, 1)} sqft (15% waste)` },
+        { id: "fp_stone", item: `MSI stone veneer${fp.stone_box_quantity === null ? " — enter box coverage" : ""}`, calc: fp.stone_box_quantity ?? 0, unit: "boxes", note: `Order area ${n(fp.fireplace_stone_order_sqft, 1)} sqft (15% waste)` },
         { id: "fp_adh", item: "Stone veneer adhesive", calc: fp.veneer_adhesive_quantity ?? 0, unit: "units" },
       ];
-      if (fp.fireplace_stone_piece_quantity > 0) lines.push({ id: "fp_piece", item: `Fireplace stone 2"×12"×72" (${fpStonePiece.replace("_", " & ")})`, calc: fp.fireplace_stone_piece_quantity, unit: "pcs" });
-      lines.push({ id: "fp_appl", item: "Ventless gas fireplace appliance", calc: 1, unit: "ea", note: "Model TBC — manual select" });
-      g.push({ title: "Fireplace (Ventless)", icon: Flame, lines });
+      if (fp.fireplace_stone_piece_quantity > 0) lines.push({ id: "fp_piece", item: `Fireplace stone 2″×12″×72″ (${fpStonePiece.replace("_", " & ")})`, calc: fp.fireplace_stone_piece_quantity, unit: "pcs" });
+      lines.push({ id: "fp_appl", item: "Ventless gas fireplace appliance", calc: 1, unit: "ea", note: "Model TBC" });
+      g.push({ title: "FIREPLACE (OPTIONAL)", lines });
     }
-
     return g;
-  }, [roofType, beams, raf, perim, sh, sheathingWaste, cc, asp, fp, fpStonePiece]);
+  }, [roofType, beams, raf, perim, sh, sheathingWaste, attachment, cc, chamColor, roofing, asp, metalNotes, includeGutters, includeRidgeVent, optionalNotes, geo, fp, fpStonePiece]);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur px-4 py-3 print:hidden">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
+        <div className="mx-auto flex max-w-4xl items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary"><Hexagon className="h-4.5 w-4.5 text-primary-foreground" /></div>
-            <div>
-              <div className="text-sm font-bold tracking-tight">Deckmetry</div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Roof Estimator</div>
-            </div>
+            <div><div className="text-sm font-bold tracking-tight">Deckmetry</div><div className="text-[10px] uppercase tracking-widest text-muted-foreground">Roof Estimator</div></div>
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Internal</span>
@@ -156,181 +179,235 @@ export function RoofEstimator() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
-          {/* ── FORM ── */}
-          <div className="space-y-5 print:hidden">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Roof</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <Seg label="Roof type" value={roofType} onChange={(v) => setRoofType(v as RoofType)} options={[["gable", "Gable"], ["shed", "Shed"]]} />
-                <div className="grid grid-cols-3 gap-3">
-                  <Num label="Width (ft)" value={width} onChange={setWidth} />
-                  <Num label="Length (ft)" value={length} onChange={setLength} />
-                  <Num label="Pitch (rise/12)" value={pitch} onChange={setPitch} />
-                </div>
-                <Seg label="Attachment" value={attachment} onChange={(v) => setAttachment(v as RoofAttachment)} options={[["freestanding", "Freestanding"], ["attached", "Attached to house"]]} />
-              </CardContent>
-            </Card>
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 lg:px-8">
+        {/* Project info — first */}
+        <Card className="print:hidden">
+          <CardHeader><CardTitle className="text-base">Project Information</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-xs">Project name</Label>
+              <Input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="e.g., Smith Pavilion" className="h-10" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Address</Label>
+              <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="123 Main St, City, State ZIP" className="h-10" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Delivery date request</Label>
+              <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className="h-10" />
+            </div>
+          </CardContent>
+        </Card>
 
-            <details className="rounded-xl border bg-card">
-              <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Roof Overhangs</summary>
-              <div className="grid grid-cols-2 gap-3 px-4 pb-4">
-                <Num label="Left (ft)" value={oL} onChange={setOL} />
-                <Num label="Right (ft)" value={oR} onChange={setOR} />
-                <Num label="Front (ft)" value={oF} onChange={setOF} />
-                <Num label="Rear (ft)" value={oRear} onChange={setORear} />
-                <Num label="Sheathing waste (sheets)" value={sheathingWaste} onChange={setSheathingWaste} />
+        {/* Roof */}
+        <Card className="print:hidden">
+          <CardHeader><CardTitle className="text-base">Roof</CardTitle></CardHeader>
+          <CardContent className="space-y-5">
+            <div>
+              <Label className="text-xs">Roof type</Label>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <OptionCard active={roofType === "gable"} onClick={() => setRoofType("gable")} icon={Home} title="Gable" desc="Two sloped sides, ridge" />
+                <OptionCard active={roofType === "shed"} onClick={() => setRoofType("shed")} icon={Footprints} title="Shed" desc="Single slope" />
               </div>
-            </details>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <Num label="Width (ft)" value={width} onChange={setWidth} />
+              <Num label="Length (ft)" value={length} onChange={setLength} />
+              <Num label="Pitch (rise/12)" value={pitch} onChange={setPitch} />
+            </div>
+            <div>
+              <Label className="text-xs">Attachment</Label>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <OptionCard active={attachment === "freestanding"} onClick={() => setAttachment("freestanding")} title="Freestanding" desc="Independent structure" />
+                <OptionCard active={attachment === "attached"} onClick={() => setAttachment("attached")} title="Attached to house" desc="Adds headwall flashing" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader><CardTitle className="text-base">Roofing Material</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <Seg label="Type" value={roofing} onChange={(v) => setRoofing(v as RoofingMaterial)} options={[["asphalt", "Asphalt Shingles"], ["metal", "Metal (coming later)"]]} />
-                {roofing === "asphalt" ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <Num label="Underlayment roll (sqft)" value={underlaymentCov} onChange={setUnderlaymentCov} />
-                    <Num label="Drip edge stock (ft)" value={dripStock} onChange={setDripStock} />
-                    <Num label="Valley length (ft)" value={valleyLf} onChange={setValleyLf} />
-                    <Num label="Wall intersection (ft)" value={wallLf} onChange={setWallLf} />
-                  </div>
-                ) : (
-                  <div>
-                    <Label className="text-xs">Manual metal materials & notes</Label>
-                    <textarea value={metalNotes} onChange={(e) => setMetalNotes(e.target.value)} rows={3} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" placeholder="Metal roofing — coming later. Add manual materials/notes here." />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">ChamClad Ceiling</CardTitle>
-                <Toggle on={includeChamclad} onClick={() => setIncludeChamclad((v) => !v)} />
-              </CardHeader>
-              {includeChamclad && (
-                <CardContent className="grid grid-cols-2 gap-3">
-                  <Num label="Panel coverage (ft)" value={panelCov} onChange={setPanelCov} step={0.5} />
-                  <Num label="H-channel stock (ft)" value={hStock} onChange={setHStock} />
-                </CardContent>
-              )}
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-base">Fireplace (Ventless)</CardTitle>
-                <Toggle on={includeFp} onClick={() => setIncludeFp((v) => !v)} />
-              </CardHeader>
-              {includeFp && (
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
-                    <Num label="Width (ft)" value={fpW} onChange={setFpW} />
-                    <Num label="Height (ft)" value={fpH} onChange={setFpH} />
-                    <Num label="Depth (ft)" value={fpD} onChange={setFpD} />
-                    <Num label="Opening W (ft)" value={fpOW} onChange={setFpOW} />
-                    <Num label="Opening H (ft)" value={fpOH} onChange={setFpOH} />
-                    <Num label="Adhesive cov (sqft)" value={adhesiveCov} onChange={setAdhesiveCov} />
-                  </div>
-                  <Seg label="Stone sides" value={String(fpSides)} onChange={(v) => setFpSides(Number(v) as 0 | 1 | 2)} options={[["2", "Both"], ["1", "One"], ["0", "None"]]} />
-                  <Seg label="Hearth / Mantel stone" value={fpStonePiece} onChange={(v) => setFpStonePiece(v as FireplaceStoneSelection)} options={[["none", "None"], ["hearth", "Hearth"], ["mantel", "Mantel"], ["hearth_and_mantel", "Both"]]} />
-                  <Num label="MSI stone box coverage (sqft) — leave blank if TBC" value={stoneBoxCov === "" ? 0 : stoneBoxCov} onChange={(v) => setStoneBoxCov(v === 0 ? "" : v)} allowZeroBlank />
-                </CardContent>
-              )}
-            </Card>
+        {/* Overhangs */}
+        <details className="rounded-xl border bg-card print:hidden">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-semibold">Roof Overhangs <span className="font-normal text-muted-foreground">(defaults: 1 / 1 / 1 / 0)</span></summary>
+          <div className="grid grid-cols-2 gap-3 px-4 pb-4 sm:grid-cols-4">
+            <Num label="Left (ft)" value={oL} onChange={setOL} />
+            <Num label="Right (ft)" value={oR} onChange={setOR} />
+            <Num label="Front (ft)" value={oF} onChange={setOF} />
+            <Num label="Rear (ft)" value={oRear} onChange={setORear} />
+            <Num label="Sheathing waste (sheets)" value={sheathingWaste} onChange={setSheathingWaste} />
           </div>
+        </details>
 
-          {/* ── MATERIAL LIST ── */}
-          <div className="space-y-5">
-            <Card>
-              <CardHeader><CardTitle className="text-base">Roof Summary</CardTitle></CardHeader>
-              <CardContent className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
-                <Stat label="Effective W × L" value={`${n(geo.effective_roof_width_ft, 0)}′ × ${n(geo.effective_roof_length_ft, 0)}′`} />
-                <Stat label="Rafter length" value={`${n(geo.roof_diagonal_ft, 1)}′`} />
-                <Stat label="Roof area" value={`${n(sh.roof_surface_area_sqft, 0)} sqft`} />
-                <Stat label="Beam total" value={`${n(beams, 0)} lf`} />
-              </CardContent>
-            </Card>
+        {/* Roof Ceiling — ChamClad brand + color cards */}
+        <Card className="print:hidden">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Roof Ceiling</CardTitle>
+            <Toggle on={includeChamclad} onClick={() => setIncludeChamclad((v) => !v)} />
+          </CardHeader>
+          {includeChamclad && (
+            <CardContent className="space-y-5">
+              {/* Brand */}
+              <div>
+                <Label className="text-xs">Brand</Label>
+                <div className="mt-2 flex items-center gap-3 rounded-xl border-2 border-primary bg-primary/5 px-4 py-3">
+                  <PanelTop className="h-5 w-5 text-primary" />
+                  <div><div className="font-semibold">{CHAMCLAD_BRAND}</div><div className="text-xs text-muted-foreground">{CHAMCLAD_COLORS.length} colors · 16′ & 20′ panels</div></div>
+                </div>
+              </div>
+              {/* Color cards */}
+              <div>
+                <Label className="text-xs">Panel color</Label>
+                <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {CHAMCLAD_COLORS.map((c) => {
+                    const active = chamColor === c.name;
+                    return (
+                      <button key={c.name} onClick={() => setChamColor(c.name)} className={cn("overflow-hidden rounded-xl border-2 text-left transition-all", active ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/40")}>
+                        <div className="h-16 w-full" style={{ background: `linear-gradient(180deg, ${c.swatch}, ${c.swatch}cc)` }} />
+                        <div className="flex items-center justify-between px-2.5 py-2">
+                          <span className="text-xs font-semibold leading-tight">{c.name}</span>
+                          {active && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">Swatches are approximate — replace with ChamClad photos in /public/chamclad when ready.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Num label="Panel coverage (ft)" value={panelCov} onChange={setPanelCov} step={0.5} />
+                <Num label="H-channel stock (ft)" value={hStock} onChange={setHStock} />
+              </div>
+            </CardContent>
+          )}
+        </Card>
 
-            {groups.map((grp) => (
-              <Card key={grp.title} className="print:break-inside-avoid">
-                <CardHeader className="flex flex-row items-center gap-2">
-                  <grp.icon className="h-4 w-4 text-primary" />
-                  <CardTitle className="text-base">{grp.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto rounded-lg border">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                          <th className="px-3 py-2 font-semibold">Item</th>
-                          <th className="px-3 py-2 text-right font-semibold">Calc</th>
-                          <th className="px-3 py-2 text-right font-semibold print:hidden">Override</th>
-                          <th className="px-3 py-2 text-right font-semibold">Final</th>
-                          <th className="px-3 py-2 font-semibold">Unit</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {grp.lines.map((l) => (
-                          <tr key={l.id} className="border-b last:border-0 align-top">
-                            <td className="px-3 py-2">
-                              <div className="font-medium">{l.item}</div>
-                              {l.note && <div className="text-xs text-muted-foreground">{l.note}</div>}
-                            </td>
-                            <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{n(l.calc, l.calc % 1 ? 1 : 0)}</td>
-                            <td className="px-3 py-2 text-right print:hidden">
-                              <input type="number" value={overrides[l.id] ?? ""} placeholder="—" onChange={(e) => setOverride(l.id, e.target.value)}
-                                className="w-20 rounded border px-2 py-1 text-right text-sm" />
-                            </td>
-                            <td className="px-3 py-2 text-right font-semibold tabular-nums">{n(finalOf(l), finalOf(l) % 1 ? 1 : 0)}</td>
-                            <td className="px-3 py-2 text-muted-foreground">{l.unit}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {roofing === "metal" && (
-              <Card><CardContent className="py-5 text-sm text-muted-foreground">Metal roofing BOM is <strong>coming later</strong>. Use the manual notes field — no metal-roof materials are auto-generated.{metalNotes && <div className="mt-2 whitespace-pre-wrap rounded bg-muted/40 p-3 text-foreground">{metalNotes}</div>}</CardContent></Card>
+        {/* Roofing */}
+        <Card className="print:hidden">
+          <CardHeader><CardTitle className="text-base">Roofing</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <OptionCard active={roofing === "asphalt"} onClick={() => setRoofing("asphalt")} icon={PanelTop} title="Asphalt Shingles" desc="Full material assembly" />
+              <OptionCard active={roofing === "metal"} onClick={() => setRoofing("metal")} icon={PanelTop} title="Metal Roof" desc="Manual list — coming later" />
+            </div>
+            {roofing === "asphalt" ? (
+              <div className="grid grid-cols-2 gap-3">
+                <Num label="Underlayment roll (sqft)" value={underlaymentCov} onChange={setUnderlaymentCov} />
+                <Num label="Drip edge stock (ft)" value={dripStock} onChange={setDripStock} />
+                <Num label="Valley length (ft)" value={valleyLf} onChange={setValleyLf} />
+                <Num label="Wall intersection (ft)" value={wallLf} onChange={setWallLf} />
+              </div>
+            ) : (
+              <div><Label className="text-xs">Manual metal materials & notes</Label><textarea value={metalNotes} onChange={(e) => setMetalNotes(e.target.value)} rows={3} className="mt-1 w-full rounded-md border px-3 py-2 text-sm" placeholder="Metal roofing — coming later." /></div>
             )}
+          </CardContent>
+        </Card>
 
-            <p className="text-xs text-muted-foreground print:mt-4">
-              Preliminary material list for budgeting. Verify spans, code compliance, and engineering before ordering. Quantities are editable via Override.
-            </p>
+        {/* Optional items */}
+        <Card className="print:hidden">
+          <CardHeader><CardTitle className="text-base">Optional Items</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <ToggleRow label="Gutters & downspouts" on={includeGutters} onClick={() => setIncludeGutters((v) => !v)} />
+            <ToggleRow label={`Ridge vent ${roofType !== "gable" ? "(gable only)" : ""}`} on={includeRidgeVent} onClick={() => setIncludeRidgeVent((v) => !v)} />
+            <div><Label className="text-xs">Other optional notes</Label><Input value={optionalNotes} onChange={(e) => setOptionalNotes(e.target.value)} placeholder="e.g., skylight, cupola…" className="mt-1 h-9" /></div>
+          </CardContent>
+        </Card>
+
+        {/* Fireplace */}
+        <Card className="print:hidden">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2"><Flame className="h-4 w-4 text-primary" /> Fireplace (Ventless)</CardTitle>
+            <Toggle on={includeFp} onClick={() => setIncludeFp((v) => !v)} />
+          </CardHeader>
+          {includeFp && (
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <Num label="Width (ft)" value={fpW} onChange={setFpW} />
+                <Num label="Height (ft)" value={fpH} onChange={setFpH} />
+                <Num label="Depth (ft)" value={fpD} onChange={setFpD} />
+                <Num label="Opening W (ft)" value={fpOW} onChange={setFpOW} />
+                <Num label="Opening H (ft)" value={fpOH} onChange={setFpOH} />
+                <Num label="Adhesive cov (sqft)" value={adhesiveCov} onChange={setAdhesiveCov} />
+              </div>
+              <Seg label="Stone sides" value={String(fpSides)} onChange={(v) => setFpSides(Number(v) as 0 | 1 | 2)} options={[["2", "Both"], ["1", "One"], ["0", "None"]]} />
+              <Seg label="Hearth / Mantel stone" value={fpStonePiece} onChange={(v) => setFpStonePiece(v as FireplaceStoneSelection)} options={[["none", "None"], ["hearth", "Hearth"], ["mantel", "Mantel"], ["hearth_and_mantel", "Both"]]} />
+              <Num label="MSI stone box coverage (sqft) — blank if TBC" value={stoneBoxCov === "" ? 0 : stoneBoxCov} onChange={(v) => setStoneBoxCov(v === 0 ? "" : v)} />
+            </CardContent>
+          )}
+        </Card>
+
+        {/* ── BILL OF MATERIALS (at the end) ── */}
+        <div className="pt-2">
+          <div className="mb-1 flex flex-wrap items-end justify-between gap-2 border-b-2 border-primary pb-2">
+            <h2 className="text-xl font-bold tracking-tight">Bill of Materials</h2>
+            <div className="text-right text-sm text-muted-foreground">
+              <div className="font-semibold text-foreground">{projectName || "Roof project"}</div>
+              {address && <div>{address}</div>}
+              {deliveryDate && <div>Delivery requested: {deliveryDate}</div>}
+            </div>
           </div>
+          <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-3 rounded-lg border bg-muted/30 p-4 sm:grid-cols-4">
+            <Stat label="Roof type" value={roofType === "gable" ? "Gable" : "Shed"} />
+            <Stat label="Effective W × L" value={`${n(geo.effective_roof_width_ft, 0)}′ × ${n(geo.effective_roof_length_ft, 0)}′`} />
+            <Stat label="Rafter length" value={`${n(geo.roof_diagonal_ft, 1)}′`} />
+            <Stat label="Roof area" value={`${n(sh.roof_surface_area_sqft, 0)} sqft`} />
+          </div>
+
+          <div className="mt-4 space-y-4">
+            {groups.map((grp) => (
+              <div key={grp.title} className="overflow-hidden rounded-lg border print:break-inside-avoid">
+                <div className="bg-primary/10 px-4 py-2 text-sm font-bold uppercase tracking-wide text-primary">{grp.title}</div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-left text-[11px] uppercase tracking-wide text-muted-foreground">
+                      <th className="px-3 py-1.5 font-semibold">Item</th>
+                      <th className="px-3 py-1.5 text-right font-semibold">Calc</th>
+                      <th className="px-3 py-1.5 text-right font-semibold print:hidden">Override</th>
+                      <th className="px-3 py-1.5 text-right font-semibold">Final</th>
+                      <th className="px-3 py-1.5 font-semibold">Unit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {grp.lines.map((l) => (
+                      <tr key={l.id} className="border-b last:border-0 align-top">
+                        <td className="px-3 py-2"><div className="font-medium">{l.item}</div>{l.note && <div className="text-xs text-muted-foreground">{l.note}</div>}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{n(l.calc, l.calc % 1 ? 1 : 0)}</td>
+                        <td className="px-3 py-2 text-right print:hidden"><input type="number" value={overrides[l.id] ?? ""} placeholder="—" onChange={(e) => setOverride(l.id, e.target.value)} className="w-20 rounded border px-2 py-1 text-right text-sm" /></td>
+                        <td className="px-3 py-2 text-right font-semibold tabular-nums">{n(finalOf(l), finalOf(l) % 1 ? 1 : 0)}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{l.unit}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-xs text-muted-foreground">Preliminary material list for budgeting. Verify spans, code compliance, and engineering before ordering. Quantities are editable via Override.</p>
         </div>
       </div>
     </div>
   );
 }
 
-// ── small inputs ──
-function Num({ label, value, onChange, step = 1, allowZeroBlank }: { label: string; value: number; onChange: (v: number) => void; step?: number; allowZeroBlank?: boolean }) {
+// ── small components ──
+function OptionCard({ active, onClick, icon: Icon, title, desc }: { active: boolean; onClick: () => void; icon?: React.ComponentType<{ className?: string }>; title: string; desc: string }) {
   return (
-    <div className="space-y-1">
-      <Label className="text-xs">{label}</Label>
-      <Input type="number" step={step} value={Number.isFinite(value) ? value : 0}
-        onChange={(e) => onChange(e.target.value === "" ? (allowZeroBlank ? 0 : 0) : Number(e.target.value))} className="h-9" />
-    </div>
+    <button onClick={onClick} className={cn("flex flex-col items-start gap-1 rounded-xl border-2 px-4 py-3 text-left transition-all", active ? "border-primary bg-primary/5" : "border-border hover:border-primary/40 hover:bg-muted/50")}>
+      <div className="flex w-full items-center justify-between">{Icon ? <Icon className={cn("h-5 w-5", active ? "text-primary" : "text-muted-foreground")} /> : <span />}{active && <CheckCircle2 className="h-4 w-4 text-primary" />}</div>
+      <div className="font-semibold">{title}</div>
+      <div className="text-xs text-muted-foreground">{desc}</div>
+    </button>
   );
 }
+function Num({ label, value, onChange, step = 1 }: { label: string; value: number; onChange: (v: number) => void; step?: number }) {
+  return <div className="space-y-1"><Label className="text-xs">{label}</Label><Input type="number" step={step} value={Number.isFinite(value) ? value : 0} onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))} className="h-9" /></div>;
+}
 function Seg({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][] }) {
-  return (
-    <div className="space-y-1">
-      <Label className="text-xs">{label}</Label>
-      <div className="flex flex-wrap gap-2">
-        {options.map(([v, lbl]) => (
-          <button key={v} onClick={() => onChange(v)} className={cn("rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors", value === v ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted")}>{lbl}</button>
-        ))}
-      </div>
-    </div>
-  );
+  return <div className="space-y-1"><Label className="text-xs">{label}</Label><div className="flex flex-wrap gap-2">{options.map(([v, lbl]) => (<button key={v} onClick={() => onChange(v)} className={cn("rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors", value === v ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted")}>{lbl}</button>))}</div></div>;
 }
 function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {
   return <button onClick={onClick} className={cn("h-6 w-11 rounded-full transition-colors", on ? "bg-primary" : "bg-muted")}><span className={cn("block h-5 w-5 rounded-full bg-white shadow transition-transform", on ? "translate-x-5" : "translate-x-0.5")} /></button>;
+}
+function ToggleRow({ label, on, onClick }: { label: string; on: boolean; onClick: () => void }) {
+  return <div className="flex items-center justify-between rounded-lg border px-3 py-2.5"><span className="text-sm font-medium">{label}</span><Toggle on={on} onClick={onClick} /></div>;
 }
 function Stat({ label, value }: { label: string; value: string }) {
   return <div><div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div><div className="text-base font-bold">{value}</div></div>;
